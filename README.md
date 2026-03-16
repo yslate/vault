@@ -4,7 +4,7 @@
 
 **Self-hosted streaming for your work-in-progress music.**
 
-Store, share, and version your audio projects. Keep your creative process private or share it exactly as you want.
+Store, share, and version your audio projects.
 
 [![Docker](https://img.shields.io/badge/ghcr.io-blue?logo=docker&logoColor=white)](https://ghcr.io/bungleware/vault)
 [![License](https://img.shields.io/github/license/bungleware/vault)](LICENSE)
