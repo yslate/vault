@@ -23,6 +23,7 @@ import {
 } from "./AnimatedSkipIcons";
 import { useProjectCoverImage } from "../hooks/useProjectCoverImage";
 import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useWebHaptics } from "web-haptics/react";
 
 interface MusicPlayerProps {
   hideControls?: boolean;
@@ -33,6 +34,7 @@ export default function MusicPlayer({
 }: MusicPlayerProps) {
   const navigate = useNavigate();
   const routerState = useRouterState();
+  const haptic = useWebHaptics();
   const {
     currentTrack,
     audioUrl,
@@ -939,8 +941,11 @@ export default function MusicPlayer({
               </div>
 
               <div
+                role={currentTrack ? "button" : undefined}
+                tabIndex={currentTrack ? 0 : undefined}
                 className="min-w-0 w-full cursor-pointer"
                 onClick={currentTrack ? handleTrackTitleClick : undefined}
+                onKeyDown={currentTrack ? (e) => { if (e.key === "Enter" || e.key === " ") handleTrackTitleClick(); } : undefined}
               >
                 <ScrollingText
                   text={playerTitle}
@@ -1002,6 +1007,7 @@ export default function MusicPlayer({
                 aria-label="Previous track"
                 onClick={(e) => {
                   previousTrack();
+                  haptic.trigger("light");
                   blurOnClick(e);
                   skipBackRef.current?.play();
                 }}
@@ -1017,6 +1023,7 @@ export default function MusicPlayer({
                 type="button"
                 onClick={(e) => {
                   handlePlayPause();
+                  haptic.trigger("medium");
                   blurOnClick(e);
                 }}
                 className="text-white hover:text-gray-300 transition-colors cursor-pointer"
@@ -1036,6 +1043,7 @@ export default function MusicPlayer({
                 aria-label="Next track"
                 onClick={(e) => {
                   nextTrack();
+                  haptic.trigger("light");
                   blurOnClick(e);
                   skipForwardRef.current?.play();
                 }}
@@ -1102,6 +1110,7 @@ export default function MusicPlayer({
                 aria-pressed={loopMode !== "off"}
                 onClick={(e) => {
                   toggleLoop();
+                  haptic.trigger("selection");
                   blurOnClick(e);
                 }}
                 onKeyDown={preventSpacebarDefault}
@@ -1120,6 +1129,7 @@ export default function MusicPlayer({
                 aria-pressed={isShuffled}
                 onClick={(e) => {
                   toggleShuffle();
+                  haptic.trigger("selection");
                   blurOnClick(e);
                 }}
                 onKeyDown={preventSpacebarDefault}
@@ -1133,6 +1143,7 @@ export default function MusicPlayer({
                 aria-label="Queue"
                 onClick={(e) => {
                   setIsQueueOpen(!isQueueOpen);
+                  haptic.trigger("selection");
                   blurOnClick(e);
                 }}
                 onKeyDown={preventSpacebarDefault}

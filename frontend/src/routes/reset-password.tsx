@@ -173,8 +173,8 @@ function ResetPasswordPage() {
           >
             <div className="text-center mb-6">
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.2 }}
                 className="flex justify-center mb-3"
               >

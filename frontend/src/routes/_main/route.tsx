@@ -163,6 +163,7 @@ function MainLayout() {
               <Button
                 variant="ghost"
                 size="sm"
+                haptic="light"
                 className="flex items-center gap-1 text-white hover:text-white/80 -ml-2"
                 onClick={handleBack}
               >
@@ -260,12 +261,13 @@ function MainLayout() {
             ref={searchButtonRef}
             variant="default"
             size="icon-lg"
+            haptic="light"
             onClick={() => setIsSearchOpen(true)}
           >
             <SearchIcon strokeWidth={3} className="size-4.5"></SearchIcon>
           </Button>
           <Link to="/profile">
-            <Button variant="default" size="icon-lg">
+            <Button variant="default" size="icon-lg" haptic="light">
               <UserIcon fill="white" className="size-4.5"></UserIcon>
             </Button>
           </Link>

@@ -154,6 +154,7 @@ export function ProjectTrackList({
         <Button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
+          haptic="medium"
           className="w-full mb-6 h-12 text-base font-semibold active:scale-99"
         >
           <PlusIcon className="size-5 mr-2" />

@@ -184,11 +184,14 @@ export default function AlbumCover({
       )}
 
       <div
+        role={showUploadOverlay && onUploadClick ? "button" : undefined}
+        tabIndex={showUploadOverlay && onUploadClick ? 0 : undefined}
         className={cn(
           "relative z-10 aspect-square w-full rounded-2xl overflow-hidden outline outline-white/13 group bg-neutral-800",
           showUploadOverlay && onUploadClick && "cursor-pointer",
         )}
         onClick={showUploadOverlay && onUploadClick ? onUploadClick : undefined}
+        onKeyDown={showUploadOverlay && onUploadClick ? (e) => { if (e.key === "Enter" || e.key === " ") onUploadClick(); } : undefined}
       >
         {imageUrl ? (
           <ColorExtractor

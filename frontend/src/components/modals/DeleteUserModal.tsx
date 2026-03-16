@@ -114,10 +114,11 @@ export default function DeleteUserModal({
 
               {requirePassword && (
                 <div className="mb-6">
-                  <label className="text-sm text-[#848484] mb-2 block">
+                  <label htmlFor="delete-user-password" className="text-sm text-[#848484] mb-2 block">
                     Enter your password to confirm
                   </label>
                   <input
+                    id="delete-user-password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -147,6 +148,7 @@ export default function DeleteUserModal({
                 <Button
                   onClick={handleConfirm}
                   disabled={isDeleting || (requirePassword && !password.trim())}
+                  haptic="warning"
                   variant="destructive"
                   className="w-full bg-[#381d1d] hover:bg-[#4a2626] border-[#7f3434] border-[0.5px] text-[#ff5656] font-medium"
                 >

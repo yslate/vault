@@ -17,6 +17,7 @@ import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { Filter } from "virtual:refractionFilter?width=48&height=48&radius=16&bezelWidth=12&glassThickness=40&refractiveIndex=1.45&bezelType=convex_squircle";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { Button } from "@/components/ui/button";
+import { useWebHaptics } from "web-haptics/react";
 import { useProjectCoverImage } from "@/hooks/useProjectCoverImage";
 import {
   CROSSFADE_DURATION_MS,
@@ -33,6 +34,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { Project } from "@/types/api";
+
+const EMPTY_FOLDER_ITEMS: any[] = [];
 
 export interface TrackCardData {
   public_id: string;
@@ -85,7 +88,7 @@ export function TrackCard({
   isDragging,
   dragScaleDown,
   hoverAsFolder,
-  hoverFolderItems = [],
+  hoverFolderItems = EMPTY_FOLDER_ITEMS,
   isDropping = false,
 }: TrackCardProps) {
   const [gradientColors, setGradientColors] = useState<string[]>([
@@ -99,6 +102,7 @@ export function TrackCard({
   const [isTextCrossfading, setIsTextCrossfading] = useState(false);
   const prevHoverRef = useRef<boolean | undefined>(undefined);
   const { play, pause, isPlaying, currentTrack } = useAudioPlayer();
+  const haptic = useWebHaptics();
 
   const playButtonPointerDown = useMotionValue(0);
   const playButtonIsUp = useTransform(
@@ -437,6 +441,7 @@ export function TrackCard({
           onClick={(e) => {
             e.stopPropagation();
             handlePlayPause();
+            haptic.trigger("medium");
           }}
           onMouseDown={() => playButtonPointerDown.set(1)}
           onMouseUp={() => playButtonPointerDown.set(0)}
@@ -606,5 +611,3 @@ export function TrackCard({
     </div>
   );
 }
-
-export default TrackCard;

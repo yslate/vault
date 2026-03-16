@@ -294,10 +294,11 @@ export default function EditProfileModal({
 
                   <div className="space-y-6">
                     <div className="md:hidden">
-                      <label className="text-[#848484] text-sm mb-2 block">
+                      <label htmlFor="edit-profile-username" className="text-[#848484] text-sm mb-2 block">
                         Username
                       </label>
                       <input
+                        id="edit-profile-username"
                         type="text"
                         value={username}
                         placeholder="User"
@@ -453,6 +454,7 @@ export default function EditProfileModal({
                       <Button
                         onClick={handleSave}
                         variant={"hot"}
+                        haptic="success"
                         className="flex-1 bg-[#e0e0e0] hover:bg-[#d5d5d5] active:bg-[#cacaca] text-black rounded-xl h-[41px]"
                         disabled={isSaving || !username.trim()}
                       >

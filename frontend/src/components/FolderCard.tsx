@@ -32,6 +32,8 @@ import { toast } from "@/routes/__root";
 
 type PreviewItem = Project | Folder | SharedTrackResponse;
 
+const EMPTY_HOVER_ITEMS: Project[] = [];
+
 function ProjectCoverThumbnail({ project }: { project: Project }) {
   const { imageUrl, isLoading } = useProjectCoverImage(project, "medium");
 
@@ -163,7 +165,7 @@ interface FolderCardProps {
 export default function FolderCard({
   folder,
   className,
-  hoverIncomingItems = [],
+  hoverIncomingItems = EMPTY_HOVER_ITEMS,
   isDropping = false,
   dragScaleDown = false,
   isDragging = false,

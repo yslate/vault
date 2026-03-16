@@ -40,6 +40,7 @@ import DeleteVersionModal from "./DeleteVersionModal";
 import { formatTrackDuration } from "@/lib/duration";
 import { env } from "@/env";
 import { getStreamUrl } from "@/api/media";
+import { useWebHaptics } from "web-haptics/react";
 
 const SAVE_DEBOUNCE_MS = 500;
 const TAP_TEMPO_DEBOUNCE_MS = 1200;
@@ -79,6 +80,7 @@ export default function TrackVersionsModal({
 }: TrackVersionsModalProps) {
   const { currentTrack, isPlaying, pause, play, clearPreloadedAudio } =
     useAudioPlayer();
+  const hapticFeedback = useWebHaptics();
   const [internalOpen, setInternalOpen] = useState(false);
   const [editedKey, setEditedKey] = useState<string | undefined>(
     track.key || undefined,
@@ -515,6 +517,7 @@ export default function TrackVersionsModal({
   const handleActivateVersion = async (versionId: number) => {
     try {
       await activateVersion(versionId);
+      hapticFeedback.trigger("success");
       setActiveVersionId(versionId);
       onTrackUpdate?.({ active_version_id: versionId });
 
@@ -532,6 +535,7 @@ export default function TrackVersionsModal({
       await loadVersions();
       onUpdate?.();
     } catch (error) {
+      hapticFeedback.trigger("error");
       toast.error("Failed to activate version");
       console.error("Failed to activate version:", error);
     }
@@ -1173,12 +1177,15 @@ export default function TrackVersionsModal({
                           return (
                             <div
                               key={version.id}
+                              role="button"
+                              tabIndex={isActive ? -1 : 0}
                               className={`relative border border-[#676767] rounded-[15px] p-5 transition-all cursor-pointer hover:border-[#d2d2d2] ${
                                 isActive ? "bg-white/5" : ""
                               }`}
                               onClick={() =>
                                 !isActive && handleActivateVersion(version.id)
                               }
+                              onKeyDown={(e) => { if (!isActive && (e.key === "Enter" || e.key === " ")) handleActivateVersion(version.id); }}
                             >
                               {isActive && (
                                 <div

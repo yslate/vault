@@ -114,32 +114,6 @@ export async function leaveSharedProject(projectId: string): Promise<void> {
   return del<void>(`/api/projects/${projectId}/leave`)
 }
 
-export function calculateExpirationDate(expirationTime: string): Date {
-  const now = new Date()
-  const expirationMap: Record<string, number> = {
-    '1m': 1 * 60 * 1000,
-    '15m': 15 * 60 * 1000,
-    '1h': 60 * 60 * 1000,
-    '12h': 12 * 60 * 60 * 1000,
-    '1d': 24 * 60 * 60 * 1000,
-    '3d': 3 * 24 * 60 * 60 * 1000,
-    '1w': 7 * 24 * 60 * 60 * 1000,
-    '2w': 14 * 24 * 60 * 60 * 1000,
-  }
-
-  const milliseconds = expirationMap[expirationTime]
-  if (!milliseconds) {
-    throw new Error(`Invalid expiration time: ${expirationTime}`)
-  }
-
-  return new Date(now.getTime() + milliseconds)
-}
-
-export function formatShareUrl(token: string, isProject = false): string {
-  const baseUrl = window.location.origin
-  const path = isProject ? '/share/project' : '/share'
-  return `${baseUrl}${path}/${token}`
-}
 
 export async function listProjectShareUsers(
   projectId: string

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Plus, FolderPlus, FilePlus } from "lucide-react";
+import { useWebHaptics } from "web-haptics/react";
 
 interface MorphingAddButtonProps {
   onAddProject: () => void;
@@ -20,17 +21,21 @@ export default function MorphingAddButton({
   bottomOffset,
 }: MorphingAddButtonProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const haptic = useWebHaptics();
 
   const handleToggle = () => {
+    haptic.trigger("medium");
     setIsExpanded(!isExpanded);
   };
 
   const handleAddProject = () => {
+    haptic.trigger("light");
     onAddProject();
     setIsExpanded(false);
   };
 
   const handleAddFolder = () => {
+    haptic.trigger("light");
     onAddFolder();
     setIsExpanded(false);
   };

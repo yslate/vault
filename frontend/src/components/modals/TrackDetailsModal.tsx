@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useEffect, useState, useMemo, useCallback, useRef, memo } from "react";
+import { useWebHaptics } from "web-haptics/react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
 import TrackVersionsModal from "./TrackVersionsModal";
@@ -811,10 +812,14 @@ function ActionButton({
   disabled = false,
 }: ActionButtonProps) {
   const isGrouped = position !== "single";
+  const haptic = useWebHaptics();
 
   return (
     <button
-      onClick={onClick}
+      onClick={() => {
+        haptic.trigger(variant === "destructive" ? "warning" : "light");
+        onClick();
+      }}
       disabled={disabled}
       className={cn(
         "px-4 py-3 text-left transition-all border-t border-white/5 bg-white/5 hover:bg-white/10 active:bg-white/15",

@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ProjectCard from "@/components/ProjectCard";
 import FolderCard from "./FolderCard";
 import DraggableTile from "./DraggableTile";
-import TrackCard from "@/components/TrackCard";
+import { TrackCard } from "@/components/TrackCard";
 import MoveProjectModal from "@/components/modals/MoveProjectModal";
 import LeaveProjectModal from "@/components/modals/LeaveProjectModal";
 import LeaveTrackModal from "@/components/modals/LeaveTrackModal";
@@ -45,6 +45,10 @@ import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { downloadTrack, getTrack } from "@/api/tracks";
 import { getCSRFToken } from "@/api/client";
 import { toast } from "@/routes/__root";
+import { useWebHaptics } from "web-haptics/react";
+
+const EMPTY_FOLDERS: Folder[] = [];
+const EMPTY_SHARED_TRACKS: SharedTrackResponse[] = [];
 
 interface DraggableProjectGridProps {
   initialProjects: Project[];
@@ -56,13 +60,14 @@ interface DraggableProjectGridProps {
 
 export default function DraggableProjectGrid({
   initialProjects,
-  initialFolders = [],
-  initialSharedTracks = [],
+  initialFolders = EMPTY_FOLDERS,
+  initialSharedTracks = EMPTY_SHARED_TRACKS,
   currentFolderId,
   className,
 }: DraggableProjectGridProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const haptic = useWebHaptics();
   const moveProject = useMoveProject();
   const moveProjectsToFolder = useMoveProjectsToFolder();
   const createFolder = useCreateFolder();
@@ -699,7 +704,8 @@ export default function DraggableProjectGrid({
     handleDragStart,
     handleDragMove,
     handleDragCancel,
-    handleDrop,
+
+    handleDrop: rawHandleDrop,
   } = useDragAndDrop(items, setItems, {
     onCreateFolder: handleCreateFolder,
     onMoveProjectToFolder: handleMoveProjectToFolder,
@@ -707,6 +713,17 @@ export default function DraggableProjectGrid({
     onOrganizeSharedProject: handleOrganizeSharedProject,
     onOrganizeSharedTrack: handleOrganizeSharedTrack,
   });
+
+  const handleDrop = useCallback(
+    async (shouldDrop: boolean, offset?: { x: number; y: number }) => {
+      const result = await rawHandleDrop(shouldDrop, offset);
+      if (result) {
+        haptic.trigger("medium");
+      }
+      return result;
+    },
+    [rawHandleDrop, haptic],
+  );
 
   const handleTrackAddToQueue = useCallback(
     async (track: SharedTrackResponse) => {

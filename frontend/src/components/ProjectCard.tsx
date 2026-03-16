@@ -50,6 +50,7 @@ import MoveProjectModal from "./modals/MoveProjectModal";
 import { toast } from "@/routes/__root";
 import { useProjectCoverImage } from "@/hooks/useProjectCoverImage";
 import { Filter } from "virtual:refractionFilter?width=48&height=48&radius=16&bezelWidth=12&glassThickness=40&refractiveIndex=1.45&bezelType=convex_squircle";
+import { useWebHaptics } from "web-haptics/react";
 
 function IncomingItemCover({ project }: { project: Project }) {
   const { imageUrl } = useProjectCoverImage(project, "medium");
@@ -73,6 +74,8 @@ function IncomingItemCover({ project }: { project: Project }) {
     </div>
   );
 }
+
+const EMPTY_FOLDER_ITEMS: Project[] = [];
 
 interface ProjectCardProps {
   project: Project;
@@ -102,7 +105,7 @@ export default function ProjectCard({
   isDragging,
   dragScaleDown,
   hoverAsFolder,
-  hoverFolderItems = [],
+  hoverFolderItems = EMPTY_FOLDER_ITEMS,
   isDropping = false,
   isOwned = true,
   canExport = true,
@@ -112,6 +115,7 @@ export default function ProjectCard({
 }: ProjectCardProps) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const haptic = useWebHaptics();
   const deleteProject = useDeleteProject();
   const moveProject = useMoveProject();
   const duplicateProject = useDuplicateProject();
@@ -503,6 +507,7 @@ export default function ProjectCard({
           onClick={(e) => {
             e.stopPropagation();
             handlePlayPause();
+            haptic.trigger("medium");
           }}
           onMouseDown={() => playButtonPointerDown.set(1)}
           onMouseUp={() => playButtonPointerDown.set(0)}

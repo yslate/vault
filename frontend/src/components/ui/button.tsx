@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import { useWebHaptics } from "web-haptics/react";
 
 import { cn } from "@/lib/utils";
 
@@ -37,29 +38,45 @@ const buttonVariants = cva(
   }
 );
 
+type HapticType =
+  | "light"
+  | "medium"
+  | "heavy"
+  | "success"
+  | "warning"
+  | "error"
+  | "selection";
+
 function Button({
   className,
   variant,
   size,
   asChild = false,
+  haptic,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
+    haptic?: HapticType;
   }) {
   const Comp = asChild ? Slot : "button";
+  const haptics = useWebHaptics();
+
+  const handleClick = haptic
+    ? (e: React.MouseEvent<HTMLButtonElement>) => {
+        haptics.trigger(haptic);
+        props.onClick?.(e);
+      }
+    : props.onClick;
 
   return (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
-      // style={{
-      //   cornerShape: "squircle",
-      //   borderRadius: "200px",
-      // }}
       {...props}
+      onClick={handleClick}
     />
   );
 }
 
-export { Button, buttonVariants };
+export { Button };

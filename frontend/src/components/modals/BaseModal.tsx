@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "motion/react";
+import { useWebHaptics } from "web-haptics/react";
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -10,6 +11,8 @@ interface BaseModalProps {
   disableClose?: boolean;
   dataAttributes?: Record<string, string>;
 }
+
+const EMPTY_DATA_ATTRIBUTES: Record<string, string> = {};
 
 const maxWidthClasses = {
   sm: "max-w-sm",
@@ -25,8 +28,10 @@ export default function BaseModal({
   children,
   maxWidth = "md",
   disableClose = false,
-  dataAttributes = {},
+  dataAttributes = EMPTY_DATA_ATTRIBUTES,
 }: BaseModalProps) {
+  const haptic = useWebHaptics();
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && !disableClose) {
@@ -35,6 +40,7 @@ export default function BaseModal({
     };
 
     if (isOpen) {
+      haptic.trigger("medium");
       document.addEventListener("keydown", handleEscape);
       document.body.style.overflow = "hidden";
     }
@@ -43,7 +49,7 @@ export default function BaseModal({
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
     };
-  }, [isOpen, disableClose, onClose]);
+  }, [isOpen, disableClose, onClose, haptic]);
 
   return (
     <>

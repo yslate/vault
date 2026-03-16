@@ -191,6 +191,7 @@ function ProjectLayout() {
           <Button
             variant="default"
             size="icon-lg"
+            haptic="light"
             onClick={() => window.history.back()}
           >
             <ChevronLeftIcon className="size-4.5" />
@@ -200,6 +201,7 @@ function ProjectLayout() {
               <Button
                 variant="default"
                 size="icon-lg"
+                haptic="light"
                 onClick={() => {
                   if (project) {
                     prefetchSharingData("project", project.public_id);
@@ -213,13 +215,14 @@ function ProjectLayout() {
             <Button
               variant="default"
               size="icon-lg"
+              haptic="light"
               onClick={() => window.dispatchEvent(new Event("project-search"))}
             >
               <SearchIcon strokeWidth={3} className="size-4.5" />
             </Button>
             <DropdownMenu onOpenChange={(open) => open && prefetchFolders()}>
               <DropdownMenuTrigger asChild>
-                <Button variant="default" size="icon-lg">
+                <Button variant="default" size="icon-lg" haptic="light">
                   <MoreHorizontal strokeWidth={3} className="size-4.5" />
                 </Button>
               </DropdownMenuTrigger>

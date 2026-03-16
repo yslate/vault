@@ -1,7 +1,6 @@
-import { put, post } from './client'
+import { put } from './client'
 import type {
   OrganizeItemRequest,
-  BulkOrganizeRequest,
   SharedProjectOrganization,
   SharedTrackOrganization,
 } from '../types/api'
@@ -21,6 +20,3 @@ export async function organizeSharedTrack(
   return put<SharedTrackOrganization>(`/api/shared-tracks/${trackId}/organize`, data)
 }
 
-export async function bulkOrganize(data: BulkOrganizeRequest): Promise<void> {
-  return post<void>('/api/organize/bulk', data)
-}

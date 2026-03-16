@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useState, memo } from "react";
 import { Draggable } from "@hello-pangea/dnd";
+import { useWebHaptics } from "web-haptics/react";
 
 interface TrackListItemProps {
   id: string;
@@ -45,6 +46,7 @@ function TrackListItem({
   isSharedWithUsers = false,
 }: TrackListItemProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const haptic = useWebHaptics();
 
   const content = (provided?: any, snapshot?: any) => (
     <div
@@ -61,11 +63,14 @@ function TrackListItem({
       )}
     >
       <div
+        role="button"
+        tabIndex={isTranscoding ? -1 : 0}
         className={cn(
           "peer flex-1 min-w-0 relative z-10 py-2 px-4",
           isTranscoding ? "cursor-default opacity-60" : "cursor-pointer",
         )}
-        onClick={isTranscoding ? undefined : onClick}
+        onClick={isTranscoding ? undefined : () => { haptic.trigger("light"); onClick?.(); }}
+        onKeyDown={isTranscoding ? undefined : (e) => { if (e.key === "Enter" || e.key === " ") onClick?.(); }}
         onMouseEnter={() => !isTranscoding && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
@@ -107,8 +112,11 @@ function TrackListItem({
 
       {duration && !isTranscoding && (
         <div
+          role="button"
+          tabIndex={0}
           className="relative z-10 py-2 mr-4 cursor-pointer hidden md:block"
           onClick={onClick}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onClick?.(); }}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >

@@ -147,7 +147,10 @@ export default function ImportInstanceModal({
         </div>
 
         <div
+          role="button"
+          tabIndex={isImporting ? -1 : 0}
           onClick={() => !isImporting && fileInputRef.current?.click()}
+          onKeyDown={(e) => { if (!isImporting && (e.key === "Enter" || e.key === " ")) fileInputRef.current?.click(); }}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           className={`border-2 border-dashed border-[#353333] rounded-lg p-8 mb-6 transition-colors bg-[#191919] ${isImporting ? "opacity-50" : "cursor-pointer hover:border-[#454545]"}`}
@@ -248,6 +251,7 @@ export default function ImportInstanceModal({
           <Button
             onClick={handleImport}
             disabled={isImportDisabled}
+            haptic="warning"
             className="w-full bg-[#381d1d] hover:bg-[#4a2626] border-[#7f3434] border-[0.5px] text-[#ff5656] font-medium disabled:opacity-50"
           >
             {isImporting ? "Importing..." : "Import"}

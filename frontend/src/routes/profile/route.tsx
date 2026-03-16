@@ -65,6 +65,7 @@ function ProfileLayout() {
         <Button
           variant="default"
           size="icon-lg"
+          haptic="light"
           onClick={() => navigate({ to: "/" })}
         >
           <ChevronLeftIcon className="size-4.5" />
@@ -72,7 +73,7 @@ function ProfileLayout() {
         <div className="flex items-center gap-2.5">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="default" size="icon-lg">
+              <Button variant="default" size="icon-lg" haptic="light">
                 <MoreHorizontal strokeWidth={3} className="size-4.5" />
               </Button>
             </DropdownMenuTrigger>

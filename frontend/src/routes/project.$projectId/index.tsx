@@ -1,5 +1,6 @@
 import { DotIcon, Shuffle, Play, Pause, LinkIcon, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useWebHaptics } from "web-haptics/react";
 import AlbumCover from "@/components/AlbumCover";
 import NotesPanel from "@/components/NotesPanel";
 import LinkNotAvailable from "@/components/LinkNotAvailable";
@@ -8,7 +9,6 @@ import { Filter } from "virtual:refractionFilter?width=48&height=48&radius=16&be
 import {
   useState,
   useEffect,
-  useLayoutEffect,
   useRef,
   useMemo,
   useCallback,
@@ -49,6 +49,11 @@ export const Route = createFileRoute("/project/$projectId/")({
 
 function ProjectPage() {
   const { projectId } = Route.useParams();
+  return <ProjectPageContent key={projectId} projectId={projectId} />;
+}
+
+function ProjectPageContent({ projectId }: { projectId: string }) {
+  const haptic = useWebHaptics();
   const { user } = useAuth();
   const { data: project, isLoading: projectLoading } = useProject(projectId);
   const { data: apiTracks = [], isLoading: tracksLoading } = useTracks(
@@ -503,11 +508,6 @@ function ProjectPage() {
     }
   }, [projectId, projectLoading, tracksLoading]);
 
-  useLayoutEffect(() => {
-    setShowCoverPanel(false);
-    setCoverColorsReady(false);
-  }, [projectId]);
-
   useEffect(() => {
     if (project && !projectLoading && coverColorsReady) {
       const timer = setTimeout(() => setShowCoverPanel(true), 50);
@@ -683,6 +683,7 @@ function ProjectPage() {
                     size="icon"
                     onClick={(e) => {
                       toggleShuffle();
+                      haptic.trigger("selection");
                       blurOnClick(e);
                     }}
                     onKeyDown={preventSpacebarDefault}
@@ -716,7 +717,7 @@ function ProjectPage() {
                       backgroundColor: playButton.backgroundColor,
                       scale: playButton.scaleSpring,
                     }}
-                    onClick={handlePlayPause}
+                    onClick={() => { handlePlayPause(); haptic.trigger("medium"); }}
                     disabled={tracks.length === 0}
                     onMouseDown={() => playButton.pointerDown.set(1)}
                     onMouseUp={() => playButton.pointerDown.set(0)}
