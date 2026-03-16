@@ -447,7 +447,7 @@ function ProfilePage() {
                   <div className="flex items-center justify-between border-b border-[#353333] pb-4">
                     <p className="text-[#848484] text-base">Version</p>
                     <p className="text-white text-base font-medium">
-                      {instanceInfo?.version || "dev"}
+                      {instanceInfo?.version || ""}
                       {instanceInfo?.commit_sha && (
                         <span className="text-[#848484] text-sm font-mono ml-2">
                           ({instanceInfo.commit_sha.substring(0, 7)})

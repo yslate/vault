@@ -14,6 +14,7 @@ RUN bun run build
 FROM docker.io/library/golang:1.25-alpine AS backend-builder
 
 ARG GIT_COMMIT=unknown
+ARG GIT_VERSION=dev
 
 RUN apk add --no-cache git sqlite gcc musl-dev
 WORKDIR /app
@@ -27,7 +28,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     cd cmd/server && \
     CGO_ENABLED=1 \
-    go build -ldflags="-w -s -X main.CommitSHA=${GIT_COMMIT}" \
+    go build -ldflags="-w -s -X main.CommitSHA=${GIT_COMMIT} -X main.Version=${GIT_VERSION}" \
     -o ../../bin/vault-server
 
 FROM docker.io/library/alpine:latest

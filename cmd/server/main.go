@@ -27,6 +27,7 @@ import (
 )
 
 var CommitSHA = "unknown"
+var Version = "dev"
 
 type Config struct {
 	Port               string
@@ -231,7 +232,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(authService, config.AuthConfig)
 	adminHandler := handlers.NewAdminHandler(database, config.AuthConfig)
 	prefsHandler := handlers.NewPreferencesHandler(database)
-	statsHandler := handlers.NewStatsHandler(database, CommitSHA)
+	statsHandler := handlers.NewStatsHandler(database, Version, CommitSHA)
 	instanceHandler := handlers.NewInstanceHandler(database, config.DataDir, wsHub)
 	mediaHandler := handlers.NewMediaHandler(config.AuthConfig)
 	projectsHandler := projects.NewProjectsHandler(svc.Projects, database, config.DataDir)

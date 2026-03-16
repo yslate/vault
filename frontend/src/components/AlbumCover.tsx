@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useRef, useState } from "react";
-import { ColorExtractor } from "react-color-extractor";
+import { useColorExtractor } from "@/hooks/useColorExtractor";
 
 interface AlbumCoverProps {
   imageUrl?: string;
@@ -34,6 +34,7 @@ export default function AlbumCover({
   const [isMobileScreen, setIsMobileScreen] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
   const onColorsReadyRef = useRef(onColorsReady);
+  const extractedColors = useColorExtractor(imageUrl);
 
   useEffect(() => {
     onColorsReadyRef.current = onColorsReady;
@@ -114,19 +115,10 @@ export default function AlbumCover({
     }
   }, [imageUrl]);
 
-  const handleColorsExtracted = (
-    colors: string[],
-    _imageElement?: HTMLImageElement,
-  ) => {
-    if (!imageUrl) {
-      return;
-    }
-
-    if (colors.length > 0) {
-      const selectedColors = colors.slice(1, 5);
-      setGradientColors(selectedColors);
-    }
-  };
+  useEffect(() => {
+    if (!imageUrl || extractedColors.length === 0) return;
+    setGradientColors(extractedColors.slice(1, 5));
+  }, [imageUrl, extractedColors]);
 
   const handleImageLoad = () => {
     setIsCoverImageLoaded(true);
@@ -141,13 +133,6 @@ export default function AlbumCover({
       setDiscBaseColor(baseColor);
     }
 
-    if (onColorsReadyRef.current) {
-      onColorsReadyRef.current();
-    }
-  };
-
-  const handleError = (error: Error) => {
-    console.error("[AlbumCover] Failed to extract colors:", error);
     if (onColorsReadyRef.current) {
       onColorsReadyRef.current();
     }
@@ -194,24 +179,19 @@ export default function AlbumCover({
         onKeyDown={showUploadOverlay && onUploadClick ? (e) => { if (e.key === "Enter" || e.key === " ") onUploadClick(); } : undefined}
       >
         {imageUrl ? (
-          <ColorExtractor
-            getColors={(colors: string[]) => handleColorsExtracted(colors)}
-            onError={handleError}
-          >
-            <img
-              ref={imgRef}
-              src={imageUrl}
-              alt={title}
-              className={cn(
-                "w-full h-full object-cover transition-opacity duration-300 ease-out",
-                isCoverImageLoaded ? "opacity-100" : "opacity-0",
-              )}
-              crossOrigin="anonymous"
-              onLoad={handleImageLoad}
-              loading="lazy"
-              decoding="async"
-            />
-          </ColorExtractor>
+          <img
+            ref={imgRef}
+            src={imageUrl}
+            alt={title}
+            className={cn(
+              "w-full h-full object-cover transition-opacity duration-300 ease-out",
+              isCoverImageLoaded ? "opacity-100" : "opacity-0",
+            )}
+            crossOrigin="anonymous"
+            onLoad={handleImageLoad}
+            loading="lazy"
+            decoding="async"
+          />
         ) : (
           <div className="w-full h-full bg-neutral-800 flex items-center justify-center"></div>
         )}

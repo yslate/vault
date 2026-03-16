@@ -10,11 +10,12 @@ import (
 
 type StatsHandler struct {
 	db        *db.DB
+	version   string
 	commitSHA string
 }
 
-func NewStatsHandler(database *db.DB, commitSHA string) *StatsHandler {
-	return &StatsHandler{db: database, commitSHA: commitSHA}
+func NewStatsHandler(database *db.DB, version, commitSHA string) *StatsHandler {
+	return &StatsHandler{db: database, version: version, commitSHA: commitSHA}
 }
 
 func (h *StatsHandler) GetStorageStats(w http.ResponseWriter, r *http.Request) error {
@@ -63,7 +64,7 @@ func (h *StatsHandler) GetInstanceInfo(w http.ResponseWriter, r *http.Request) e
 	}
 
 	response := InstanceInfoResponse{
-		Version:   "dev",
+		Version:   h.version,
 		CommitSHA: h.commitSHA,
 		Name:      settings.Name,
 		CreatedAt: createdAt,
@@ -74,7 +75,7 @@ func (h *StatsHandler) GetInstanceInfo(w http.ResponseWriter, r *http.Request) e
 
 func (h *StatsHandler) GetInstanceVersion(w http.ResponseWriter, r *http.Request) error {
 	response := InstanceVersionResponse{
-		Version:   "dev",
+		Version:   h.version,
 		CommitSHA: h.commitSHA,
 	}
 
@@ -131,7 +132,7 @@ func (h *StatsHandler) UpdateInstanceName(w http.ResponseWriter, r *http.Request
 	}
 
 	response := InstanceInfoResponse{
-		Version:   "dev",
+		Version:   h.version,
 		CommitSHA: h.commitSHA,
 		Name:      settings.Name,
 		CreatedAt: createdAt,

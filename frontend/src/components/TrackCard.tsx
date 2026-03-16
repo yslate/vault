@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
-import { ColorExtractor } from "react-color-extractor";
+import { useColorExtractor } from "@/hooks/useColorExtractor";
 import { motion, useMotionValue, useSpring, useTransform } from "motion/react";
 import { Filter } from "virtual:refractionFilter?width=48&height=48&radius=16&bezelWidth=12&glassThickness=40&refractiveIndex=1.45&bezelType=convex_squircle";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
@@ -97,8 +97,8 @@ export function TrackCard({
     "#BFF9FF",
     "#59AFFF",
   ]);
-  const imgRef = useRef<HTMLImageElement>(null);
   const isDraggingRef = useRef(false);
+  const extractedColors = useColorExtractor(track.projectCoverUrl);
   const [isTextCrossfading, setIsTextCrossfading] = useState(false);
   const prevHoverRef = useRef<boolean | undefined>(undefined);
   const { play, pause, isPlaying, currentTrack } = useAudioPlayer();
@@ -150,16 +150,11 @@ export function TrackCard({
     (op) => `rgba(40, 39, 39, ${op})`
   );
 
-  const handleColorsExtracted = (colors: string[]) => {
-    if (colors.length > 0) {
-      const selectedColors = colors.slice(1, 5);
-      setGradientColors(selectedColors);
+  useEffect(() => {
+    if (extractedColors.length > 0) {
+      setGradientColors(extractedColors.slice(1, 5));
     }
-  };
-
-  const handleError = (error: Error) => {
-    console.error("[TrackCard] Failed to extract colors:", error);
-  };
+  }, [extractedColors]);
 
   const handleCardClick = (e: React.MouseEvent) => {
     if (isDraggingRef.current) {
@@ -273,25 +268,6 @@ export function TrackCard({
         className
       )}
     >
-      {/* Hidden image for color extraction */}
-      {track.projectCoverUrl && (
-        <div className="hidden">
-          <ColorExtractor
-            getColors={(colors: string[]) => handleColorsExtracted(colors)}
-            onError={handleError}
-          >
-            <img
-              ref={imgRef}
-              src={track.projectCoverUrl}
-              alt="cover for color extraction"
-              crossOrigin="anonymous"
-              loading="lazy"
-              decoding="async"
-            />
-          </ColorExtractor>
-        </div>
-      )}
-
       {/* Disc Container */}
       <div
         className="relative aspect-square rounded-(--card-border-radius) border border-(--card-border) bg-neutral-800/40"
