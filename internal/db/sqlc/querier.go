@@ -151,6 +151,7 @@ type Querier interface {
 	GetUserTrackShare(ctx context.Context, arg GetUserTrackShareParams) (UserTrackShare, error)
 	GetUserTrackShareByID(ctx context.Context, id int64) (UserTrackShare, error)
 	GetWebSocketSession(ctx context.Context, sessionID string) (WebsocketSession, error)
+	IncrementTrackOrdersByProject(ctx context.Context, projectID int64) error
 	IncrementAccessCount(ctx context.Context, id int64) error
 	IncrementProjectAccessCount(ctx context.Context, id int64) error
 	InvalidateSessions(ctx context.Context) error

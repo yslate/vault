@@ -187,6 +187,12 @@ SELECT COALESCE(MAX(track_order), -1) as max_order
 FROM tracks
 WHERE project_id = ?;
 
+-- name: IncrementTrackOrdersByProject :exec
+UPDATE tracks
+SET track_order = track_order + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE project_id = ?;
+
 -- name: SearchTracksAccessibleByUser :many
 SELECT DISTINCT
     t.id,

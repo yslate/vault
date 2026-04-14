@@ -157,8 +157,9 @@ func (s *authService) Register(ctx context.Context, input RegisterInput) (*Regis
 	)
 
 	err = qtx.CreateUserPreferences(ctx, sqlc.CreateUserPreferencesParams{
-		UserID:         user.ID,
-		DefaultQuality: "lossy",
+		UserID:              user.ID,
+		DefaultQuality:      "lossy",
+		TrackInsertPosition: "bottom",
 	})
 	if err != nil {
 		return nil, err
@@ -246,8 +247,9 @@ func (s *authService) RegisterWithInvite(ctx context.Context, input RegisterWith
 	}
 
 	err = qtx.CreateUserPreferences(ctx, sqlc.CreateUserPreferencesParams{
-		UserID:         user.ID,
-		DefaultQuality: "lossy",
+		UserID:              user.ID,
+		DefaultQuality:      "lossy",
+		TrackInsertPosition: "bottom",
 	})
 	if err != nil {
 		return nil, err

@@ -243,14 +243,15 @@ type User struct {
 }
 
 type UserPreference struct {
-	UserID             int64          `json:"user_id"`
-	DefaultQuality     string         `json:"default_quality"`
-	CreatedAt          sql.NullTime   `json:"created_at"`
-	UpdatedAt          sql.NullTime   `json:"updated_at"`
-	DiscColors         sql.NullString `json:"disc_colors"`
-	ColorSpread        sql.NullInt64  `json:"color_spread"`
-	GradientSpread     sql.NullInt64  `json:"gradient_spread"`
-	ColorShiftRotation sql.NullInt64  `json:"color_shift_rotation"`
+	UserID              int64          `json:"user_id"`
+	DefaultQuality      string         `json:"default_quality"`
+	CreatedAt           sql.NullTime   `json:"created_at"`
+	UpdatedAt           sql.NullTime   `json:"updated_at"`
+	DiscColors          sql.NullString `json:"disc_colors"`
+	ColorSpread         sql.NullInt64  `json:"color_spread"`
+	GradientSpread      sql.NullInt64  `json:"gradient_spread"`
+	TrackInsertPosition string         `json:"track_insert_position"`
+	ColorShiftRotation  sql.NullInt64  `json:"color_shift_rotation"`
 }
 
 type UserProjectShare struct {

@@ -6,13 +6,7 @@ import NotesPanel from "@/components/NotesPanel";
 import LinkNotAvailable from "@/components/LinkNotAvailable";
 import { createFileRoute } from "@tanstack/react-router";
 import { Filter } from "virtual:refractionFilter?width=48&height=48&radius=16&bezelWidth=12&glassThickness=40&refractiveIndex=1.45&bezelType=convex_squircle";
-import {
-  useState,
-  useEffect,
-  useRef,
-  useMemo,
-  useCallback,
-} from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import type { DropResult } from "@hello-pangea/dnd";
@@ -31,6 +25,7 @@ import { uploadProjectCover, fetchProjectCover } from "@/api/projects";
 import { useProjectCoverImage } from "@/hooks/useProjectCoverImage";
 import type { Track, VisibilityStatus } from "@/types/api";
 import { formatTrackDuration, formatDurationLong } from "@/lib/duration";
+import { setLastPlayed } from "@/lib/lastPlayed";
 
 import { usePlayButtonAnimation } from "@/hooks/usePlayButtonAnimation";
 import { useProjectSearch } from "@/hooks/useProjectSearch";
@@ -45,6 +40,7 @@ import {
   mapTracksToPlayerTracks,
 } from "@/hooks/useProjectUtils";
 import { useProjectStreamStats } from "@/hooks/useNotifications";
+import { getPreferences } from "@/api/preferences";
 
 export const Route = createFileRoute("/project/$projectId/")({
   component: ProjectPage,
@@ -59,6 +55,11 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
   const haptic = useWebHaptics();
   const { user } = useAuth();
   const { data: project, isLoading: projectLoading } = useProject(projectId);
+  const { data: preferences } = useQuery({
+    queryKey: ["preferences"],
+    queryFn: getPreferences,
+    staleTime: 5 * 60 * 1000,
+  });
   const { data: apiTracks = [], isLoading: tracksLoading } = useTracks(
     project ? project.id : null,
   );
@@ -101,6 +102,7 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
   const {
     play,
     pause,
+    resume,
     isPlaying,
     currentTrack,
     previewProgress,
@@ -176,6 +178,15 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
 
       if (!project) return;
 
+      if (currentTrack?.id === track.public_id) {
+        if (isPlaying) {
+          pause();
+        } else {
+          resume();
+        }
+        return;
+      }
+
       const clickedIndex = tracks.findIndex(
         (t) => t.public_id === track.public_id,
       );
@@ -189,12 +200,17 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
         false,
         mapTracksToPlayerTracks(tracksAfter, project, projectCoverImage),
       );
+      setLastPlayed(project.public_id, project.folder_id ?? null);
     },
     [
       tracks,
       project,
       projectCoverImage,
       play,
+      pause,
+      resume,
+      isPlaying,
+      currentTrack,
       isNotesOpen,
       scrollToTrack,
       search,
@@ -248,7 +264,7 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
 
       if (successCount > 0) {
         toast.success(
-          `Uploaded ${successCount} track${successCount > 1 ? "s" : ""}`,
+          `${successCount} track${successCount > 1 ? "s" : ""} added ${preferences?.track_insert_position === "top" ? "to the top" : "to the bottom"}`,
         );
       }
       if (failCount > 0) {
@@ -488,6 +504,7 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
         false,
         mapTracksToPlayerTracks(tracksAfter, project, projectCoverImage),
       );
+      setLastPlayed(project.public_id, project.folder_id ?? null);
     }
   };
 
@@ -763,7 +780,10 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
                       backgroundColor: playButton.backgroundColor,
                       scale: playButton.scaleSpring,
                     }}
-                    onClick={() => { handlePlayPause(); haptic.trigger("medium"); }}
+                    onClick={() => {
+                      handlePlayPause();
+                      haptic.trigger("medium");
+                    }}
                     disabled={tracks.length === 0}
                     onMouseDown={() => playButton.pointerDown.set(1)}
                     onMouseUp={() => playButton.pointerDown.set(0)}
@@ -827,12 +847,19 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
                 <span>{tracks.length} tracks</span>
                 <DotIcon className="w-4 shrink-0" />
                 <span>{totalDuration}</span>
-                {isProjectOwned && projectStreamStats && projectStreamStats.total_streams > 0 && (
-                  <>
-                    <DotIcon className="w-4 shrink-0" />
-                    <span>{projectStreamStats.total_streams.toLocaleString()} {projectStreamStats.total_streams === 1 ? "play" : "plays"}</span>
-                  </>
-                )}
+                {isProjectOwned &&
+                  projectStreamStats &&
+                  projectStreamStats.total_streams > 0 && (
+                    <>
+                      <DotIcon className="w-4 shrink-0" />
+                      <span>
+                        {projectStreamStats.total_streams.toLocaleString()}{" "}
+                        {projectStreamStats.total_streams === 1
+                          ? "play"
+                          : "plays"}
+                      </span>
+                    </>
+                  )}
               </div>
             </div>
 
@@ -970,7 +997,10 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
         onCloseCoverGenerator={() => setIsCoverGeneratorOpen(false)}
         onApplyCover={async (file) => {
           if (!project) return;
-          await coverUploadMutation.mutateAsync({ projectId: project.public_id, file });
+          await coverUploadMutation.mutateAsync({
+            projectId: project.public_id,
+            file,
+          });
         }}
         projectName={project.name}
         isSmallScreen={isSmallScreen}

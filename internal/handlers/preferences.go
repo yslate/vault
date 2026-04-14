@@ -13,14 +13,15 @@ import (
 )
 
 type PreferencesResponse struct {
-	UserID             int64     `json:"user_id"`
-	DefaultQuality     string    `json:"default_quality"`
-	DiscColors         *[]string `json:"disc_colors,omitempty"`
-	ColorSpread        *int      `json:"color_spread,omitempty"`
-	GradientSpread     *int      `json:"gradient_spread,omitempty"`
-	ColorShiftRotation *int      `json:"color_shift_rotation,omitempty"`
-	CreatedAt          string    `json:"created_at"`
-	UpdatedAt          string    `json:"updated_at"`
+	UserID              int64     `json:"user_id"`
+	DefaultQuality      string    `json:"default_quality"`
+	DiscColors          *[]string `json:"disc_colors,omitempty"`
+	ColorSpread         *int      `json:"color_spread,omitempty"`
+	GradientSpread      *int      `json:"gradient_spread,omitempty"`
+	TrackInsertPosition string    `json:"track_insert_position"`
+	ColorShiftRotation  *int      `json:"color_shift_rotation,omitempty"`
+	CreatedAt           string    `json:"created_at"`
+	UpdatedAt           string    `json:"updated_at"`
 }
 
 type PreferencesHandler struct {
@@ -33,10 +34,11 @@ func NewPreferencesHandler(database *db.DB) *PreferencesHandler {
 
 func toPreferencesResponse(prefs sqlc.UserPreference) PreferencesResponse {
 	resp := PreferencesResponse{
-		UserID:         prefs.UserID,
-		DefaultQuality: prefs.DefaultQuality,
-		CreatedAt:      prefs.CreatedAt.Time.Format(time.RFC3339),
-		UpdatedAt:      prefs.UpdatedAt.Time.Format(time.RFC3339),
+		UserID:              prefs.UserID,
+		DefaultQuality:      prefs.DefaultQuality,
+		TrackInsertPosition: prefs.TrackInsertPosition,
+		CreatedAt:           prefs.CreatedAt.Time.Format(time.RFC3339),
+		UpdatedAt:           prefs.UpdatedAt.Time.Format(time.RFC3339),
 	}
 
 	if prefs.DiscColors.Valid && prefs.DiscColors.String != "" {
@@ -101,6 +103,12 @@ func (h *PreferencesHandler) UpdatePreferences(w http.ResponseWriter, r *http.Re
 		}
 	}
 
+	if req.TrackInsertPosition != nil {
+		if *req.TrackInsertPosition != "top" && *req.TrackInsertPosition != "bottom" {
+			return apperr.NewBadRequest("invalid track insert position")
+		}
+	}
+
 	ctx := r.Context()
 
 	params := sqlc.UpdateUserPreferencesParams{
@@ -125,6 +133,10 @@ func (h *PreferencesHandler) UpdatePreferences(w http.ResponseWriter, r *http.Re
 
 	if req.GradientSpread != nil {
 		params.GradientSpread = sql.NullInt64{Int64: int64(*req.GradientSpread), Valid: true}
+	}
+
+	if req.TrackInsertPosition != nil {
+		params.TrackInsertPosition = sql.NullString{String: *req.TrackInsertPosition, Valid: true}
 	}
 
 	if req.ColorShiftRotation != nil {

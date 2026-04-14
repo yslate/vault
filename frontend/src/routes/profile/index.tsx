@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import CDDiscBadge from "@/components/CDDiscBadge";
 // import { LinearBlur } from "progressive-blur";
 import { Button } from "@/components/ui/button";
-import { Pencil, Users } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, Pencil, Users } from "lucide-react";
 import { motion } from "motion/react";
 import {
   getStorageStats,
@@ -25,6 +25,7 @@ import type {
   InstanceInfo,
   UserPreferences,
   Quality,
+  TrackInsertPosition,
 } from "@/types/api";
 
 export const Route = createFileRoute("/profile/")({
@@ -92,6 +93,29 @@ function ProfilePage() {
       setPreferences(updated);
     } catch (error) {
       console.error("Failed to update quality:", error);
+    }
+  };
+
+  const handleTrackInsertPositionChange = async (
+    newPosition: TrackInsertPosition,
+  ) => {
+    if (!preferences || preferences.track_insert_position === newPosition) {
+      return;
+    }
+
+    try {
+      const updated = await updatePreferences({
+        track_insert_position: newPosition,
+      });
+      setPreferences(updated);
+      toast.success(
+        newPosition === "top"
+          ? "New songs will land at the top"
+          : "New songs will land at the bottom",
+      );
+    } catch (error) {
+      toast.error("Failed to update song position");
+      console.error("Failed to update track insert position:", error);
     }
   };
 
@@ -185,7 +209,11 @@ function ProfilePage() {
                         : "Vault Instance"
                     }
                     colors={preferences.disc_colors}
-                    colorSpread={preferences.disc_colors?.length ? preferences.color_spread : undefined}
+                    colorSpread={
+                      preferences.disc_colors?.length
+                        ? preferences.color_spread
+                        : undefined
+                    }
                   />
                 ) : (
                   <div className="w-[305px] h-[375px]" />
@@ -373,6 +401,86 @@ function ProfilePage() {
                         ? getQualityDisplay(preferences.default_quality)
                         : "Loading..."}
                     </Button>
+                  </div>
+
+                  <div className="rounded-[24px] border border-[#353333] bg-[#191919] p-3">
+                    <div className="flex flex-col gap-1 mb-3 px-1">
+                      <p className="text-white text-base">Song drop position</p>
+                      <p className="text-[#7c7c7c] text-sm">
+                        Decide where new songs land when you drop them into a
+                        project
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        {
+                          value: "top" as const,
+                          label: "Top of list",
+                          hint: "Fresh ideas first",
+                          icon: ArrowUpToLine,
+                        },
+                        {
+                          value: "bottom" as const,
+                          label: "Bottom of list",
+                          hint: "Queue them at the end",
+                          icon: ArrowDownToLine,
+                        },
+                      ].map((option) => {
+                        const isActive =
+                          preferences?.track_insert_position === option.value;
+                        const Icon = option.icon;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() =>
+                              handleTrackInsertPositionChange(option.value)
+                            }
+                            className={`group relative overflow-hidden rounded-[20px] border p-4 text-left transition-all ${
+                              isActive
+                                ? "border-[#5cd6f4]/50 bg-linear-to-br from-[#123844] via-[#13262b] to-[#171717] shadow-[0_0_0_1px_rgba(92,214,244,0.08)]"
+                                : "border-[#353333] bg-[#202020] hover:border-[#4a4a4a] hover:bg-[#252525]"
+                            }`}
+                          >
+                            <div
+                              className={`pointer-events-none absolute inset-0 transition-opacity ${
+                                isActive ? "opacity-100" : "opacity-0"
+                              }`}
+                              style={{
+                                background:
+                                  "radial-gradient(circle at top right, rgba(92,214,244,0.18), transparent 45%)",
+                              }}
+                            />
+                            <div className="relative flex items-start justify-between gap-3">
+                              <div>
+                                <p className="text-white text-sm font-medium">
+                                  {option.label}
+                                </p>
+                                <p className="text-[#8c8c8c] text-xs mt-1">
+                                  {option.hint}
+                                </p>
+                              </div>
+                              <div
+                                className={`flex size-9 items-center justify-center rounded-full border transition-colors ${
+                                  isActive
+                                    ? "border-[#5cd6f4]/35 bg-[#5cd6f4]/12 text-[#84e7ff]"
+                                    : "border-white/10 bg-white/5 text-[#8c8c8c] group-hover:text-white"
+                                }`}
+                              >
+                                <Icon className="size-4" />
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <p className="text-[#8b8b8b] text-xs mt-3 px-1">
+                      Track versions still drop onto the song you hover. This
+                      only affects new songs added to the project.
+                    </p>
                   </div>
 
                   <div className="hidden">

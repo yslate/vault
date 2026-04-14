@@ -152,14 +152,30 @@ func (h *TracksHandler) createTrackFromReader(ctx context.Context, input createT
 		return sqlc.Track{}, apperr.NewInternal("failed to generate track id", err)
 	}
 
-	maxOrderResult, err := h.db.Queries.GetMaxTrackOrderByProject(ctx, input.Project.ID)
-	if err != nil {
-		return sqlc.Track{}, apperr.NewInternal("failed to get track order", err)
+	insertPosition := "bottom"
+	prefs, err := h.db.Queries.GetUserPreferences(ctx, input.ActingUserID)
+	if err == nil && (prefs.TrackInsertPosition == "top" || prefs.TrackInsertPosition == "bottom") {
+		insertPosition = prefs.TrackInsertPosition
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return sqlc.Track{}, apperr.NewInternal("failed to get user preferences", err)
 	}
 
-	maxOrder, ok := maxOrderResult.(int64)
-	if !ok {
-		maxOrder = -1
+	targetOrder := int64(0)
+	if insertPosition == "top" {
+		if err := h.db.Queries.IncrementTrackOrdersByProject(ctx, input.Project.ID); err != nil {
+			return sqlc.Track{}, apperr.NewInternal("failed to shift track order", err)
+		}
+	} else {
+		maxOrderResult, err := h.db.Queries.GetMaxTrackOrderByProject(ctx, input.Project.ID)
+		if err != nil {
+			return sqlc.Track{}, apperr.NewInternal("failed to get track order", err)
+		}
+
+		maxOrder, ok := maxOrderResult.(int64)
+		if !ok {
+			maxOrder = -1
+		}
+		targetOrder = maxOrder + 1
 	}
 
 	track, err := h.db.CreateTrack(ctx, sqlc.CreateTrackParams{
@@ -175,7 +191,7 @@ func (h *TracksHandler) createTrackFromReader(ctx context.Context, input createT
 	}
 
 	if err := h.db.Queries.UpdateTrackOrder(ctx, sqlc.UpdateTrackOrderParams{
-		TrackOrder: maxOrder + 1,
+		TrackOrder: targetOrder,
 		ID:         track.ID,
 	}); err != nil {
 		return sqlc.Track{}, apperr.NewInternal("failed to set track order", err)

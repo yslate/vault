@@ -454,8 +454,9 @@ func (h *InstanceHandler) ResetInstance(w http.ResponseWriter, r *http.Request) 
 		}
 
 		if err := h.db.Queries.CreateUserPreferences(ctx, sqlc.CreateUserPreferencesParams{
-			UserID:         newUser.ID,
-			DefaultQuality: "lossy",
+			UserID:              newUser.ID,
+			DefaultQuality:      "lossy",
+			TrackInsertPosition: "bottom",
 		}); err != nil {
 			return apperr.NewInternal("failed to create user preferences", err)
 		}

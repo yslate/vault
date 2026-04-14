@@ -26,6 +26,7 @@ import type {
 } from "./grid/types";
 import { folderToGridItem, trackToGridItem } from "./grid/types";
 import { useDragAndDrop } from "./grid/useDragAndDrop";
+import { getLastPlayed } from "@/lib/lastPlayed";
 import { LayoutGroup, AnimatePresence } from "motion/react";
 import {
   useMoveProject,
@@ -49,6 +50,25 @@ import { useWebHaptics } from "web-haptics/react";
 
 const EMPTY_FOLDERS: Folder[] = [];
 const EMPTY_SHARED_TRACKS: SharedTrackResponse[] = [];
+
+function bubbleLastPlayedToFront(items: GridItem[]): GridItem[] {
+  const lastPlayed = getLastPlayed();
+  if (!lastPlayed) return items;
+  const idx = items.findIndex((item) => {
+    if (lastPlayed.folderId != null) {
+      return item.type === "folder" && item.folderId === lastPlayed.folderId;
+    }
+    return (
+      item.type === "project" &&
+      item.project.public_id === lastPlayed.projectId
+    );
+  });
+  if (idx <= 0) return items;
+  const reordered = [...items];
+  const [item] = reordered.splice(idx, 1);
+  reordered.unshift(item);
+  return reordered;
+}
 
 interface DraggableProjectGridProps {
   initialProjects: Project[];
@@ -110,7 +130,10 @@ export default function DraggableProjectGrid({
       };
     }
 
-    return [...folderItems, ...projectItems, ...trackItems];
+    const initial = [...folderItems, ...projectItems, ...trackItems];
+    return currentFolderId === undefined
+      ? bubbleLastPlayedToFront(initial)
+      : initial;
   });
 
   const [restoredProjectIds, setRestoredProjectIds] = useState<Set<string>>(
@@ -205,7 +228,10 @@ export default function DraggableProjectGrid({
               projectIds: currentProjectIds,
               folderIds: currentFolderIds,
             };
-            return [...folderItems, ...projectItems, ...trackItems];
+            const initial = [...folderItems, ...projectItems, ...trackItems];
+            return currentFolderId === undefined
+              ? bubbleLastPlayedToFront(initial)
+              : initial;
           }
 
           const prevProjectIds = new Set<string>();
@@ -254,7 +280,10 @@ export default function DraggableProjectGrid({
               projectIds: currentProjectIds,
               folderIds: currentFolderIds,
             };
-            return [...folderItems, ...projectItems, ...trackItems];
+            const matched = [...folderItems, ...projectItems, ...trackItems];
+            return currentFolderId === undefined
+              ? bubbleLastPlayedToFront(matched)
+              : matched;
           }
         }
 

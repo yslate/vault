@@ -111,6 +111,18 @@ func (q *Queries) GetMaxTrackOrderByProject(ctx context.Context, projectID int64
 	return max_order, err
 }
 
+const incrementTrackOrdersByProject = `-- name: IncrementTrackOrdersByProject :exec
+UPDATE tracks
+SET track_order = track_order + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE project_id = ?
+`
+
+func (q *Queries) IncrementTrackOrdersByProject(ctx context.Context, projectID int64) error {
+	_, err := q.db.ExecContext(ctx, incrementTrackOrdersByProject, projectID)
+	return err
+}
+
 const getTrack = `-- name: GetTrack :one
 SELECT id, user_id, project_id, title, artist, album, active_version_id, created_at, updated_at, track_order, "key", bpm, public_id, notes, notes_author_name, notes_updated_at, visibility_status, allow_editing, allow_downloads, password_hash, origin_instance_url, shared_with_instance_users FROM tracks
 WHERE id = ? AND user_id = ?

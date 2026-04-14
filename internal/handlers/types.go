@@ -46,11 +46,12 @@ type AuthResponse struct {
 }
 
 type UpdatePreferencesRequest struct {
-	DefaultQuality     *models.Quality `json:"default_quality,omitempty"`
-	DiscColors         *[]string       `json:"disc_colors,omitempty"`
-	ColorSpread        *int            `json:"color_spread,omitempty"`
-	GradientSpread     *int            `json:"gradient_spread,omitempty"`
-	ColorShiftRotation *int            `json:"color_shift_rotation,omitempty"`
+	DefaultQuality      *models.Quality `json:"default_quality,omitempty"`
+	DiscColors          *[]string       `json:"disc_colors,omitempty"`
+	ColorSpread         *int            `json:"color_spread,omitempty"`
+	GradientSpread      *int            `json:"gradient_spread,omitempty"`
+	TrackInsertPosition *string         `json:"track_insert_position,omitempty"`
+	ColorShiftRotation  *int            `json:"color_shift_rotation,omitempty"`
 }
 
 type CreateProjectRequest struct {

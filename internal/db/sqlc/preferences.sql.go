@@ -11,22 +11,23 @@ import (
 )
 
 const createUserPreferences = `-- name: CreateUserPreferences :exec
-INSERT INTO user_preferences (user_id, default_quality)
-VALUES (?, ?)
+INSERT INTO user_preferences (user_id, default_quality, track_insert_position)
+VALUES (?, ?, ?)
 `
 
 type CreateUserPreferencesParams struct {
-	UserID         int64  `json:"user_id"`
-	DefaultQuality string `json:"default_quality"`
+	UserID              int64  `json:"user_id"`
+	DefaultQuality      string `json:"default_quality"`
+	TrackInsertPosition string `json:"track_insert_position"`
 }
 
 func (q *Queries) CreateUserPreferences(ctx context.Context, arg CreateUserPreferencesParams) error {
-	_, err := q.db.ExecContext(ctx, createUserPreferences, arg.UserID, arg.DefaultQuality)
+	_, err := q.db.ExecContext(ctx, createUserPreferences, arg.UserID, arg.DefaultQuality, arg.TrackInsertPosition)
 	return err
 }
 
 const getUserPreferences = `-- name: GetUserPreferences :one
-SELECT user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, color_shift_rotation FROM user_preferences
+SELECT user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, track_insert_position, color_shift_rotation FROM user_preferences
 WHERE user_id = ?
 `
 
@@ -41,6 +42,7 @@ func (q *Queries) GetUserPreferences(ctx context.Context, userID int64) (UserPre
 		&i.DiscColors,
 		&i.ColorSpread,
 		&i.GradientSpread,
+		&i.TrackInsertPosition,
 		&i.ColorShiftRotation,
 	)
 	return i, err
@@ -52,19 +54,21 @@ SET default_quality = COALESCE(?1, default_quality),
     disc_colors = COALESCE(?2, disc_colors),
     color_spread = COALESCE(?3, color_spread),
     gradient_spread = COALESCE(?4, gradient_spread),
-    color_shift_rotation = COALESCE(?5, color_shift_rotation),
+    track_insert_position = COALESCE(?5, track_insert_position),
+    color_shift_rotation = COALESCE(?6, color_shift_rotation),
     updated_at = CURRENT_TIMESTAMP
-WHERE user_id = ?6
-RETURNING user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, color_shift_rotation
+WHERE user_id = ?7
+RETURNING user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, track_insert_position, color_shift_rotation
 `
 
 type UpdateUserPreferencesParams struct {
-	DefaultQuality     sql.NullString `json:"default_quality"`
-	DiscColors         sql.NullString `json:"disc_colors"`
-	ColorSpread        sql.NullInt64  `json:"color_spread"`
-	GradientSpread     sql.NullInt64  `json:"gradient_spread"`
-	ColorShiftRotation sql.NullInt64  `json:"color_shift_rotation"`
-	UserID             int64          `json:"user_id"`
+	DefaultQuality      sql.NullString `json:"default_quality"`
+	DiscColors          sql.NullString `json:"disc_colors"`
+	ColorSpread         sql.NullInt64  `json:"color_spread"`
+	GradientSpread      sql.NullInt64  `json:"gradient_spread"`
+	TrackInsertPosition sql.NullString `json:"track_insert_position"`
+	ColorShiftRotation  sql.NullInt64  `json:"color_shift_rotation"`
+	UserID              int64          `json:"user_id"`
 }
 
 func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPreferencesParams) (UserPreference, error) {
@@ -73,6 +77,7 @@ func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPrefe
 		arg.DiscColors,
 		arg.ColorSpread,
 		arg.GradientSpread,
+		arg.TrackInsertPosition,
 		arg.ColorShiftRotation,
 		arg.UserID,
 	)
@@ -85,6 +90,7 @@ func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPrefe
 		&i.DiscColors,
 		&i.ColorSpread,
 		&i.GradientSpread,
+		&i.TrackInsertPosition,
 		&i.ColorShiftRotation,
 	)
 	return i, err
