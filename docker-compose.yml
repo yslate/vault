@@ -36,7 +36,7 @@ services:
       - vault-network
 
   watchtower:
-    image: containrrr/watchtower:1.4.0
+    image: containrrr/watchtower
     container_name: watchtower
     restart: unless-stopped
     volumes:
@@ -45,6 +45,7 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_POLL_INTERVAL=300
       - WATCHTOWER_INCLUDE_STOPPED=false
+      - DOCKER_API_VERSION=1.41
     networks:
       - vault-network
 
