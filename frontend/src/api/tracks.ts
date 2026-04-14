@@ -1,5 +1,12 @@
 import { get, post, put, del, getCSRFToken } from './client'
-import type { Track, TrackWithShareInfo, CreateTrackRequest, UpdateTrackRequest } from '../types/api'
+import type {
+  Track,
+  TrackWithShareInfo,
+  CreateTrackRequest,
+  UpdateTrackRequest,
+  ImportUntitledRequest,
+  ImportUntitledResponse,
+} from '../types/api'
 import { env } from '../env'
 
 const API_BASE_URL = env.VITE_API_URL || ''
@@ -45,31 +52,61 @@ export async function uploadTrack(
     title?: string
     artist?: string
     album?: string
-  }
+  },
+  onProgress?: (percent: number) => void
 ): Promise<Track> {
-  const formData = new FormData()
-  formData.append('file', file)
-  formData.append('project_id', String(projectId))
+  return new Promise((resolve, reject) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('project_id', String(projectId))
 
-  if (metadata?.title) formData.append('title', metadata.title)
-  if (metadata?.artist) formData.append('artist', metadata.artist)
-  if (metadata?.album) formData.append('album', metadata.album)
+    if (metadata?.title) formData.append('title', metadata.title)
+    if (metadata?.artist) formData.append('artist', metadata.artist)
+    if (metadata?.album) formData.append('album', metadata.album)
 
-	const response = await fetch(`${API_BASE_URL}/api/library/upload`, {
-		method: 'POST',
-		credentials: 'include',
-		headers: getCSRFToken() ? { 'X-CSRF-Token': getCSRFToken() as string } : {},
-		body: formData,
-	})
+    const xhr = new XMLHttpRequest()
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Upload failed' }))
-    throw new Error(error.error || 'Upload failed')
-  }
+    if (onProgress) {
+      xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+          onProgress(Math.round((e.loaded / e.total) * 100))
+        }
+      })
+    }
 
-  return response.json()
+    xhr.addEventListener('load', () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText))
+        } catch {
+          reject(new Error('Invalid response'))
+        }
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText)
+          reject(new Error(err.error || 'Upload failed'))
+        } catch {
+          reject(new Error('Upload failed'))
+        }
+      }
+    })
+
+    xhr.addEventListener('error', () => reject(new Error('Upload failed')))
+    xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')))
+
+    xhr.open('POST', `${API_BASE_URL}/api/library/upload`)
+    xhr.withCredentials = true
+    const csrf = getCSRFToken()
+    if (csrf) xhr.setRequestHeader('X-CSRF-Token', csrf)
+    xhr.send(formData)
+  })
 }
 
+export async function importUntitled(
+  data: ImportUntitledRequest
+): Promise<ImportUntitledResponse> {
+  return post<ImportUntitledResponse>('/api/tracks/import/untitled', data)
+}
 
 export async function reorderTracks(
   trackOrders: Array<{ id: number; order: number }>

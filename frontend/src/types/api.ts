@@ -1,5 +1,40 @@
 export type Quality = "source" | "lossless" | "lossy";
 
+export interface ListenEvent {
+  id: number
+  event_type: 'listen' | 'download'
+  track_id: number | null
+  track_title: string
+  played_by_user_id: number | null
+  played_by_username: string
+  played_at: string | null
+  read: boolean
+}
+
+export interface NotificationsResponse {
+  events: ListenEvent[]
+  unread_count: number
+}
+
+export interface TrackStats {
+  stream_count: number
+  download_count: number
+}
+
+export interface ProjectStreamStatsTrack {
+  id: number
+  public_id: string
+  title: string
+  stream_count: number
+  download_count: number
+}
+
+export interface ProjectStreamStats {
+  total_streams: number
+  total_downloads: number
+  tracks: ProjectStreamStatsTrack[]
+}
+
 export type TranscodingStatus = 'pending' | 'processing' | 'completed' | 'failed'
 
 export type VisibilityStatus = 'private' | 'invite_only' | 'public'
@@ -178,6 +213,35 @@ export interface CreateTrackRequest {
   title: string
   artist?: string
   album?: string
+}
+
+export interface ImportUntitledRequest {
+  project_id: string
+  untitled_url: string
+}
+
+export interface ImportUntitledProjectRequest {
+  folder_id?: number
+  untitled_url: string
+}
+
+export interface ImportUntitledResponse {
+  source_type: "track" | "project"
+  source_title: string
+  imported: number
+  failed: number
+  imported_rows?: string[]
+  failed_rows?: string[]
+}
+
+export interface ImportUntitledProjectResponse {
+  project: Project
+  source_type: "track" | "project"
+  source_title: string
+  imported: number
+  failed: number
+  imported_rows?: string[]
+  failed_rows?: string[]
 }
 
 export interface UpdateTrackRequest {
@@ -371,4 +435,3 @@ export interface BulkOrganizeItem {
 export interface BulkOrganizeRequest {
   items: BulkOrganizeItem[]
 }
-

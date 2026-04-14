@@ -2,7 +2,9 @@ package handlers
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,11 +18,12 @@ import (
 )
 
 type StreamingHandler struct {
-	db *db.DB
+	db    *db.DB
+	wsHub *WSHub
 }
 
-func NewStreamingHandler(database *db.DB) *StreamingHandler {
-	return &StreamingHandler{db: database}
+func NewStreamingHandler(database *db.DB, wsHub *WSHub) *StreamingHandler {
+	return &StreamingHandler{db: database, wsHub: wsHub}
 }
 
 func (h *StreamingHandler) StreamTrack(w http.ResponseWriter, r *http.Request) error {
@@ -86,8 +89,47 @@ func (h *StreamingHandler) StreamTrack(w http.ResponseWriter, r *http.Request) e
 		return apperr.NewInternal(fmt.Sprintf("failed to find track file: %v", err), err)
 	}
 
+	// Record listen event when a non-owner plays the track
+	if int64(userID) != track.UserID {
+		go h.recordListenEvent(context.Background(), track, int64(userID))
+	}
+
 	h.streamFile(w, r, file)
 	return nil
+}
+
+func (h *StreamingHandler) recordListenEvent(ctx context.Context, track sqlc.Track, playedByUserID int64) {
+	player, err := h.db.Queries.GetUserByID(ctx, playedByUserID)
+	if err != nil {
+		log.Printf("[StreamingHandler] Failed to get player for listen event: %v", err)
+		return
+	}
+
+	// Debounce: skip if same track was already recorded in the last 30 min
+	count, err := h.db.Queries.RecentListenEventExists(ctx, sqlc.RecentListenEventExistsParams{
+		TrackOwnerID: track.UserID,
+		TrackID:      sql.NullInt64{Int64: track.ID, Valid: true},
+	})
+	if err == nil && count > 0 {
+		return
+	}
+
+	event, err := h.db.Queries.CreateListenEvent(ctx, sqlc.CreateListenEventParams{
+		EventType:        "listen",
+		TrackOwnerID:     track.UserID,
+		TrackID:          sql.NullInt64{Int64: track.ID, Valid: true},
+		TrackTitle:       track.Title,
+		PlayedByUserID:   sql.NullInt64{Int64: playedByUserID, Valid: true},
+		PlayedByUsername: player.Username,
+	})
+	if err != nil {
+		log.Printf("[StreamingHandler] Failed to create listen event: %v", err)
+		return
+	}
+
+	if h.wsHub != nil {
+		h.wsHub.NotifyListenEvent(track.UserID, track.ID, event.ID, event.TrackTitle, event.PlayedByUsername)
+	}
 }
 
 func (h *StreamingHandler) resolveQuality(ctx context.Context, userID, trackID int64, requestedQuality string) string {

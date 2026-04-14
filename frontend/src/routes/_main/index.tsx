@@ -4,11 +4,13 @@ import DraggableProjectGrid from "@/components/DraggableProjectGrid";
 import { useProjects, useCreateProject } from "@/hooks/useProjects";
 import { useFolders, useCreateFolder } from "@/hooks/useFolders";
 import MorphingAddButton from "@/components/MorphingAddButton";
+import ImportUntitledModal from "@/components/modals/ImportUntitledModal";
 import { toast } from "@/routes/__root";
 import { useState, useEffect, useMemo } from "react";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { useQuery } from "@tanstack/react-query";
 import * as sharingApi from "@/api/sharing";
+import type { ImportUntitledProjectResponse } from "@/types/api";
 
 export const Route = createFileRoute("/_main/")({
   component: App,
@@ -43,6 +45,8 @@ function App() {
   const navigate = useNavigate();
   const { currentTrack, queue } = useAudioPlayer();
   const [showContent, setShowContent] = useState(false);
+  const [isUntitledImportModalOpen, setIsUntitledImportModalOpen] =
+    useState(false);
 
   const allProjects = useMemo(() => {
     const allProjects = projects || [];
@@ -97,6 +101,25 @@ function App() {
     }
   };
 
+  const handleUntitledProjectCreated = (
+    result: ImportUntitledProjectResponse,
+  ) => {
+    toast.untitledImportSuccess({
+      title: `Created ${result.project.name}`,
+      description:
+        result.failed > 0
+          ? `Vault created the project and imported ${result.imported} track${result.imported === 1 ? "" : "s"}. ${result.failed} could not be imported.`
+          : `Vault created the project and pulled in ${result.imported} track${result.imported === 1 ? "" : "s"} from untitled.`,
+      imported: result.imported,
+      failed: result.failed,
+    });
+
+    navigate({
+      to: "/project/$projectId",
+      params: { projectId: String(result.project.public_id) },
+    });
+  };
+
   if (!isLoading && error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -142,8 +165,10 @@ function App() {
         <MorphingAddButton
           onAddProject={handleCreateProject}
           onAddFolder={handleCreateFolder}
+          onImportUntitled={() => setIsUntitledImportModalOpen(true)}
           isCreatingProject={createProject.isPending}
           isCreatingFolder={createFolder.isPending}
+          isImportingUntitled={false}
           className={`transition-all duration-100 ${
             showContent ? "opacity-100" : "opacity-0"
           }`}
@@ -152,6 +177,11 @@ function App() {
               ? "bottom-[130px] sm:bottom-[145px]"
               : "bottom-8"
           }
+        />
+        <ImportUntitledModal
+          isOpen={isUntitledImportModalOpen}
+          onClose={() => setIsUntitledImportModalOpen(false)}
+          onProjectCreated={handleUntitledProjectCreated}
         />
       </div>
     </div>

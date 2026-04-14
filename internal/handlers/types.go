@@ -116,6 +116,35 @@ type CreateTrackRequest struct {
 	Album     *string `json:"album,omitempty"`
 }
 
+type ImportUntitledRequest struct {
+	ProjectID   string `json:"project_id"`
+	UntitledURL string `json:"untitled_url"`
+}
+
+type ImportUntitledProjectRequest struct {
+	FolderID    *int64 `json:"folder_id,omitempty"`
+	UntitledURL string `json:"untitled_url"`
+}
+
+type ImportUntitledResponse struct {
+	SourceType   string   `json:"source_type"`
+	SourceTitle  string   `json:"source_title"`
+	Imported     int      `json:"imported"`
+	Failed       int      `json:"failed"`
+	ImportedRows []string `json:"imported_rows,omitempty"`
+	FailedRows   []string `json:"failed_rows,omitempty"`
+}
+
+type ImportUntitledProjectResponse struct {
+	Project      shared.ProjectResponse `json:"project"`
+	SourceType   string                 `json:"source_type"`
+	SourceTitle  string                 `json:"source_title"`
+	Imported     int                    `json:"imported"`
+	Failed       int                    `json:"failed"`
+	ImportedRows []string               `json:"imported_rows,omitempty"`
+	FailedRows   []string               `json:"failed_rows,omitempty"`
+}
+
 type UpdateTrackRequest = shared.UpdateTrackRequest
 
 type UpdateVersionRequest struct {

@@ -84,8 +84,8 @@ func (h *WSHub) SendToUser(userID int64, msg WSMessage) {
 		return
 	}
 
-	h.mu.RLock()
-	defer h.mu.RUnlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
 	log.Printf("[WebSocket] Sending message to user %d (%d connections): %s", userID, len(conns), string(data))
 
@@ -95,6 +95,18 @@ func (h *WSHub) SendToUser(userID int64, msg WSMessage) {
 			// Don't remove here - let the read loop handle disconnection
 		}
 	}
+}
+
+func (h *WSHub) NotifyListenEvent(ownerID, trackID, eventID int64, trackTitle, username string) {
+	h.SendToUser(ownerID, WSMessage{
+		Type: "listen_event",
+		Payload: map[string]interface{}{
+			"id":                 eventID,
+			"track_id":           trackID,
+			"track_title":        trackTitle,
+			"played_by_username": username,
+		},
+	})
 }
 
 func (h *WSHub) BroadcastTranscodingUpdate(userID int64, update TranscodingUpdate) {

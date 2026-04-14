@@ -36,6 +36,25 @@ type Config struct {
 	CORSAllowedOrigins []string
 }
 
+type untitledImportProgressSender struct {
+	hub *handlers.WSHub
+}
+
+func (s untitledImportProgressSender) SendUntitledImportProgress(userID int64, stage string, current, total int, filename string) {
+	if s.hub == nil {
+		return
+	}
+	s.hub.SendToUser(userID, handlers.WSMessage{
+		Type: "untitled_import_progress",
+		Payload: map[string]interface{}{
+			"stage":    stage,
+			"current":  current,
+			"total":    total,
+			"filename": filename,
+		},
+	})
+}
+
 func loadConfig() Config {
 	_ = godotenv.Load()
 
@@ -237,10 +256,17 @@ func main() {
 	mediaHandler := handlers.NewMediaHandler(config.AuthConfig)
 	projectsHandler := projects.NewProjectsHandler(svc.Projects, database, config.DataDir)
 	foldersHandler := handlers.NewFoldersHandler(database)
-	tracksHandler := tracks.NewTracksHandler(database, storageAdapter, transcoder)
+	tracksHandler := tracks.NewTracksHandler(
+		database,
+		storageAdapter,
+		transcoder,
+		svc.Projects,
+		untitledImportProgressSender{hub: wsHub},
+	)
 	versionsHandler := handlers.NewVersionsHandler(database, storageAdapter, transcoder)
-	streamingHandler := handlers.NewStreamingHandler(database)
-	sharingHandler := sharing.NewSharingHandler(database, storageAdapter)
+	streamingHandler := handlers.NewStreamingHandler(database, wsHub)
+	notificationsHandler := handlers.NewNotificationsHandler(database)
+	sharingHandler := sharing.NewSharingHandler(database, storageAdapter, wsHub)
 	collaborationHub := handlers.NewCollaborationHub()
 	collaborationHandler := handlers.NewCollaborationWebSocketHandler(collaborationHub)
 	notesHandler := handlers.NewNotesHandler(database)
@@ -251,11 +277,11 @@ func main() {
 	frontendHandler := serveFrontend()
 
 	// Create rate limiters for public endpoints
-	authRL := middleware.NewIPRateLimiter(5, 10)      // Auth endpoints: 5 req/min, burst 10
-	refreshRL := middleware.NewIPRateLimiter(20, 30)  // Token refresh: 20 req/min, burst 30
-	tokenRL := middleware.NewIPRateLimiter(10, 15)    // Token validation: 10 req/min, burst 15
-	publicRL := middleware.NewIPRateLimiter(30, 40)   // Public info: 30 req/min, burst 40
-	shareRL := middleware.NewIPRateLimiter(60, 80)    // Share access: 60 req/min, burst 80
+	authRL := middleware.NewIPRateLimiter(5, 10)     // Auth endpoints: 5 req/min, burst 10
+	refreshRL := middleware.NewIPRateLimiter(20, 30) // Token refresh: 20 req/min, burst 30
+	tokenRL := middleware.NewIPRateLimiter(10, 15)   // Token validation: 10 req/min, burst 15
+	publicRL := middleware.NewIPRateLimiter(30, 40)  // Public info: 30 req/min, burst 40
+	shareRL := middleware.NewIPRateLimiter(60, 80)   // Share access: 60 req/min, burst 80
 
 	// Public endpoints with rate limiting
 	mux.HandleFunc("GET /api/auth/check-users", publicRL.RateLimit(httputil.Wrap(authHandler.CheckUsersExists)))
@@ -350,6 +376,8 @@ func main() {
 	mux.Handle("DELETE /api/folders/{id}", authMW(httputil.Wrap(foldersHandler.DeleteFolder)))
 
 	mux.Handle("POST /api/library/upload", authMW(httputil.Wrap(tracksHandler.UploadTrack)))
+	mux.Handle("POST /api/tracks/import/untitled", authMW(httputil.Wrap(tracksHandler.ImportUntitled)))
+	mux.Handle("POST /api/projects/import/untitled", authMW(httputil.Wrap(tracksHandler.ImportUntitledAsProject)))
 	mux.Handle("POST /api/tracks/reorder", authMW(httputil.Wrap(tracksHandler.UpdateTracksOrder)))
 	mux.Handle("GET /api/tracks", authMW(httputil.Wrap(tracksHandler.ListTracks)))
 	mux.Handle("GET /api/tracks/search", authMW(httputil.Wrap(tracksHandler.SearchTracks)))
@@ -367,6 +395,12 @@ func main() {
 	mux.Handle("DELETE /api/versions/{id}", authMW(httputil.Wrap(versionsHandler.DeleteVersion)))
 
 	mux.Handle("GET /api/stream/{id}", optionalAuthMW(signedURLMW(httputil.Wrap(streamingHandler.StreamTrack))))
+
+	mux.Handle("GET /api/notifications", authMW(httputil.Wrap(notificationsHandler.GetNotifications)))
+	mux.Handle("PUT /api/notifications/read-all", authMW(httputil.Wrap(notificationsHandler.MarkAllRead)))
+	mux.Handle("DELETE /api/notifications/{id}", authMW(httputil.Wrap(notificationsHandler.DeleteNotification)))
+	mux.Handle("GET /api/tracks/{id}/stream-stats", authMW(httputil.Wrap(notificationsHandler.GetTrackStreamStats)))
+	mux.Handle("GET /api/projects/{id}/stream-stats", authMW(httputil.Wrap(notificationsHandler.GetProjectStreamStats)))
 
 	mux.Handle("POST /api/tracks/{id}/share", authMW(httputil.Wrap(sharingHandler.CreateShareToken)))
 	mux.Handle("GET /api/share", authMW(httputil.Wrap(sharingHandler.ListShareTokens)))

@@ -8,6 +8,8 @@ import { useEffect, useState } from "react";
 
 import { toast as sonnerToast, Toaster } from "sonner";
 import MusicPlayer from "../components/MusicPlayer";
+import UntitledImportToast from "../components/UntitledImportToast";
+import UploadProgressToast from "../components/UploadProgressToast";
 import { useAuth } from "../contexts/AuthContext";
 import { Button } from "../components/ui/button";
 import { checkUsersExist } from "../api/auth";
@@ -49,6 +51,49 @@ export const toast = Object.assign(toastCustom, {
   loading: (message: string) =>
     sonnerToast.custom((id) => <CustomLoadingToast id={id} title={message} />),
   info: (message: string) => toastCustom({ title: message }),
+  untitledImportSuccess: (options: {
+    title: string;
+    description: string;
+    imported: number;
+    failed?: number;
+    action?: {
+      label: string;
+      onClick: () => void;
+    };
+  }) =>
+    sonnerToast.custom((id) => (
+      <UntitledImportToast
+        id={id}
+        title={options.title}
+        description={options.description}
+        imported={options.imported}
+        failed={options.failed}
+        action={options.action}
+        onClose={sonnerToast.dismiss}
+      />
+    )),
+  uploadProgress: (
+    id: string | number,
+    options: {
+      fileCount: number;
+      currentFileIndex: number;
+      currentFileName: string;
+      currentFileProgress: number;
+    },
+  ) =>
+    sonnerToast.custom(
+      (toastId) => (
+        <UploadProgressToast
+          id={toastId}
+          fileCount={options.fileCount}
+          currentFileIndex={options.currentFileIndex}
+          currentFileName={options.currentFileName}
+          currentFileProgress={options.currentFileProgress}
+          onClose={sonnerToast.dismiss}
+        />
+      ),
+      { id, duration: Infinity },
+    ),
   dismiss: (id?: string | number) => sonnerToast.dismiss(id),
 });
 

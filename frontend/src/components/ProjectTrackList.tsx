@@ -1,7 +1,13 @@
 import type React from "react";
-import { Search, X, PlusIcon } from "lucide-react";
+import { Search, X, PlusIcon, Link2, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { motion, AnimatePresence } from "motion/react";
 import {
   DragDropContext,
@@ -35,6 +41,7 @@ interface ProjectTrackListProps {
   isUploading: boolean;
   canEdit: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
+  onImportUntitledClick: () => void;
 
   isPlaying: boolean;
   currentTrackId: string | undefined;
@@ -69,6 +76,7 @@ export function ProjectTrackList({
   isUploading,
   canEdit,
   fileInputRef,
+  onImportUntitledClick,
   isPlaying,
   currentTrackId,
   onDragStart,
@@ -151,15 +159,35 @@ export function ProjectTrackList({
       </AnimatePresence>
 
       {canEdit && (
-        <Button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          haptic="medium"
-          className="w-full mb-6 h-12 text-base font-semibold active:scale-99"
-        >
-          <PlusIcon className="size-5 mr-2" />
-          {isUploading ? "Uploading..." : "Add Tracks"}
-        </Button>
+        <div className="flex items-center gap-3 mb-6">
+          <Button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            haptic="medium"
+            className="h-12 text-base font-semibold active:scale-99 flex-1"
+          >
+            <PlusIcon className="size-5 mr-2" />
+            {isUploading ? "Uploading..." : "Add Tracks"}
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-12 w-12 shrink-0"
+                aria-label="More project actions"
+              >
+                <MoreHorizontal className="size-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuItem onSelect={onImportUntitledClick}>
+                <Link2 className="size-4 mr-2" />
+                Import from untitled
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       )}
 
       {tracks.length === 0 ? (

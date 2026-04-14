@@ -11,6 +11,6 @@ type Service struct {
 
 func NewService(database *db.DB, storageAdapter storage.Storage) *Service {
 	return &Service{
-		Projects: NewProjectService(database, storageAdapter),
+		Projects: NewProjectService(database, storageAdapter, nil),
 	}
 }

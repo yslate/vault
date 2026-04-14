@@ -13,6 +13,7 @@ import { useFolder, useAllFolders, useUpdateFolder } from "@/hooks/useFolders";
 import type { Folder } from "@/types/api";
 import { toast } from "@/routes/__root";
 import GlobalSearchModal from "@/components/GlobalSearchModal";
+import NotificationCenter from "@/components/NotificationCenter";
 
 export const Route = createFileRoute("/_main")({
   component: MainLayout,
@@ -253,10 +254,7 @@ function MainLayout() {
           </h1>
         )}
         <div className="flex items-center gap-2.5">
-          {/* TODO: Implement notifications feature */}
-          {/* <Button variant="default" size="icon-lg">
-            <BellIcon fill="white" className="size-4.5"></BellIcon>
-          </Button> */}
+          <NotificationCenter />
           <Button
             ref={searchButtonRef}
             variant="default"

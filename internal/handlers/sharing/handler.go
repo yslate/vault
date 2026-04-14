@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
 
 	"bungleware/vault/internal/db"
@@ -13,13 +14,19 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type SharingHandler struct {
-	db      *db.DB
-	storage storage.Storage
+// ListenEventNotifier is satisfied by handlers.WSHub without importing that package.
+type ListenEventNotifier interface {
+	NotifyListenEvent(ownerID, trackID, eventID int64, trackTitle, username string)
 }
 
-func NewSharingHandler(database *db.DB, storageAdapter storage.Storage) *SharingHandler {
-	return &SharingHandler{db: database, storage: storageAdapter}
+type SharingHandler struct {
+	db       *db.DB
+	storage  storage.Storage
+	notifier ListenEventNotifier
+}
+
+func NewSharingHandler(database *db.DB, storageAdapter storage.Storage, notifier ListenEventNotifier) *SharingHandler {
+	return &SharingHandler{db: database, storage: storageAdapter, notifier: notifier}
 }
 
 func buildShareURL(r *http.Request, token string) string {
@@ -41,6 +48,49 @@ func hashSharePassword(password *string) (sql.NullString, error) {
 	}
 
 	return sql.NullString{String: string(hash), Valid: true}, nil
+}
+
+func (h *SharingHandler) recordEvent(ctx context.Context, eventType string, ownerID int64, trackID *int64, trackTitle string, playerUserID *int64, playerUsername string) {
+	nullPlayerID := sql.NullInt64{}
+	if playerUserID != nil {
+		nullPlayerID = sql.NullInt64{Int64: *playerUserID, Valid: true}
+	}
+	nullTrackID := sql.NullInt64{}
+	if trackID != nil {
+		nullTrackID = sql.NullInt64{Int64: *trackID, Valid: true}
+	}
+
+	// Debounce: skip listen events if same track was already recorded in the last 30 min
+	if eventType == "listen" && nullTrackID.Valid {
+		count, err := h.db.Queries.RecentListenEventExists(ctx, sqlc.RecentListenEventExistsParams{
+			TrackOwnerID: ownerID,
+			TrackID:      nullTrackID,
+		})
+		if err == nil && count > 0 {
+			return
+		}
+	}
+
+	event, err := h.db.Queries.CreateListenEvent(ctx, sqlc.CreateListenEventParams{
+		EventType:        eventType,
+		TrackOwnerID:     ownerID,
+		TrackID:          nullTrackID,
+		TrackTitle:       trackTitle,
+		PlayedByUserID:   nullPlayerID,
+		PlayedByUsername: playerUsername,
+	})
+	if err != nil {
+		log.Printf("[SharingHandler] Failed to create %s event: %v", eventType, err)
+		return
+	}
+
+	if h.notifier != nil {
+		notifyTrackID := int64(0)
+		if nullTrackID.Valid {
+			notifyTrackID = nullTrackID.Int64
+		}
+		h.notifier.NotifyListenEvent(ownerID, notifyTrackID, event.ID, trackTitle, playerUsername)
+	}
 }
 
 func (h *SharingHandler) canManageTrackShares(ctx context.Context, track sqlc.Track, userID int64) (bool, error) {

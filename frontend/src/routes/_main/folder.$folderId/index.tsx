@@ -3,10 +3,12 @@ import DraggableProjectGrid from "@/components/DraggableProjectGrid";
 import { useFolderContents, useCreateFolder } from "@/hooks/useFolders";
 import { useCreateProject } from "@/hooks/useProjects";
 import MorphingAddButton from "@/components/MorphingAddButton";
+import ImportUntitledModal from "@/components/modals/ImportUntitledModal";
 import { toast } from "@/routes/__root";
 import LinkNotAvailable from "@/components/LinkNotAvailable";
-import { useEffect, useRef, useMemo } from "react";
+import { useEffect, useRef, useMemo, useState } from "react";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
+import type { ImportUntitledProjectResponse } from "@/types/api";
 
 export const Route = createFileRoute("/_main/folder/$folderId/")({
   component: FolderPage,
@@ -23,6 +25,8 @@ function FolderPage() {
   const contentRef = useRef<HTMLDivElement>(null);
   const lastFolderIdRef = useRef<string | null>(null);
   const pendingShowTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isUntitledImportModalOpen, setIsUntitledImportModalOpen] =
+    useState(false);
 
   const projects = useMemo(() => {
     const allProjects = contents?.projects || [];
@@ -117,6 +121,25 @@ function FolderPage() {
     }
   };
 
+  const handleUntitledProjectCreated = (
+    result: ImportUntitledProjectResponse,
+  ) => {
+    toast.untitledImportSuccess({
+      title: `Created ${result.project.name}`,
+      description:
+        result.failed > 0
+          ? `Vault created the project and imported ${result.imported} track${result.imported === 1 ? "" : "s"}. ${result.failed} could not be imported.`
+          : `Vault created the project and pulled in ${result.imported} track${result.imported === 1 ? "" : "s"} from untitled.`,
+      imported: result.imported,
+      failed: result.failed,
+    });
+
+    navigate({
+      to: "/project/$projectId",
+      params: { projectId: String(result.project.public_id) },
+    });
+  };
+
   if (!isLoading && error) {
     return <LinkNotAvailable />;
   }
@@ -165,8 +188,10 @@ function FolderPage() {
         <MorphingAddButton
           onAddProject={handleCreateProject}
           onAddFolder={handleCreateFolder}
+          onImportUntitled={() => setIsUntitledImportModalOpen(true)}
           isCreatingProject={createProject.isPending}
           isCreatingFolder={createFolder.isPending}
+          isImportingUntitled={false}
           className={`transition-all duration-100 ${
             contents && !isLoading ? "opacity-100" : "opacity-0"
           }`}
@@ -175,6 +200,12 @@ function FolderPage() {
               ? "bottom-[130px] sm:bottom-[145px]"
               : "bottom-8"
           }
+        />
+        <ImportUntitledModal
+          isOpen={isUntitledImportModalOpen}
+          onClose={() => setIsUntitledImportModalOpen(false)}
+          folderId={folderIdNum}
+          onProjectCreated={handleUntitledProjectCreated}
         />
       </div>
     </div>

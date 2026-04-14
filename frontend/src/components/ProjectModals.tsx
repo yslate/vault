@@ -1,6 +1,7 @@
 import TrackDetailsModal from "@/components/modals/TrackDetailsModal";
 import TrackVersionsModal from "@/components/modals/TrackVersionsModal";
 import CoverArtOptionsModal from "@/components/modals/CoverArtOptionsModal";
+import CoverGeneratorModal from "@/components/modals/CoverGeneratorModal";
 import BaseModal from "@/components/modals/BaseModal";
 import NotesPanel from "@/components/NotesPanel";
 import GlobalSearchModal from "@/components/GlobalSearchModal";
@@ -47,6 +48,13 @@ interface ProjectModalsProps {
   canEditCover: boolean;
   canDownloadCover: boolean;
 
+  // Cover generator
+  isCoverGeneratorOpen: boolean;
+  onOpenCoverGenerator: () => void;
+  onCloseCoverGenerator: () => void;
+  onApplyCover: (file: File) => Promise<void> | void;
+  projectName: string;
+
   // Notes modal (mobile)
   isSmallScreen: boolean;
   isNotesOpen: boolean;
@@ -82,6 +90,11 @@ export function ProjectModals({
   hasExistingCover,
   canEditCover,
   canDownloadCover,
+  isCoverGeneratorOpen,
+  onOpenCoverGenerator,
+  onCloseCoverGenerator,
+  onApplyCover,
+  projectName,
   isSmallScreen,
   isNotesOpen,
   onCloseNotes,
@@ -133,9 +146,17 @@ export function ProjectModals({
         onClose={onCloseCoverModal}
         onLibraryClick={onLibraryClick}
         onExportClick={onExportCover}
+        onGenerateClick={canEditCover ? onOpenCoverGenerator : undefined}
         hasExistingCover={hasExistingCover}
         canEdit={canEditCover}
         canDownload={canDownloadCover}
+      />
+
+      <CoverGeneratorModal
+        isOpen={isCoverGeneratorOpen}
+        onClose={onCloseCoverGenerator}
+        onApply={onApplyCover}
+        projectName={projectName}
       />
 
       {isSmallScreen && (

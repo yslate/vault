@@ -295,6 +295,18 @@ type UserTrackShare struct {
 	UpdatedAt   sql.NullTime `json:"updated_at"`
 }
 
+type ListenEvent struct {
+	ID               int64         `json:"id"`
+	EventType        string        `json:"event_type"`
+	TrackOwnerID     int64         `json:"track_owner_id"`
+	TrackID          sql.NullInt64 `json:"track_id"`
+	TrackTitle       string        `json:"track_title"`
+	PlayedByUserID   sql.NullInt64 `json:"played_by_user_id"`
+	PlayedByUsername string        `json:"played_by_username"`
+	PlayedAt         sql.NullTime  `json:"played_at"`
+	Read             bool          `json:"read"`
+}
+
 type WebsocketSession struct {
 	ID              int64          `json:"id"`
 	SessionID       string         `json:"session_id"`

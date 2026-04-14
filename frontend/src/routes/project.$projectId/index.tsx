@@ -22,6 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useAudioPlayer } from "@/contexts/AudioPlayerContext";
 import { toast } from "@/routes/__root";
 import { uploadTrack, reorderTracks } from "@/api/tracks";
+import type { ImportUntitledResponse } from "@/types/api";
 import { uploadVersion } from "@/api/versions";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { trackKeys } from "@/hooks/useTracks";
@@ -38,10 +39,12 @@ import { useScrollToTrack } from "@/hooks/useScrollToTrack";
 import { useProjectEditing } from "@/hooks/useProjectEditing";
 import { ProjectModals } from "@/components/ProjectModals";
 import { ProjectTrackList } from "@/components/ProjectTrackList";
+import ImportUntitledModal from "@/components/modals/ImportUntitledModal";
 import {
   mapTrackToPlayerTrack,
   mapTracksToPlayerTracks,
 } from "@/hooks/useProjectUtils";
+import { useProjectStreamStats } from "@/hooks/useNotifications";
 
 export const Route = createFileRoute("/project/$projectId/")({
   component: ProjectPage,
@@ -60,6 +63,10 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
     project ? project.id : null,
   );
   const isProjectOwned = project && user ? project.user_id === user.id : true;
+  const { data: projectStreamStats } = useProjectStreamStats(
+    isProjectOwned ? project?.public_id : undefined,
+    !!project && isProjectOwned,
+  );
 
   const { data: sharedProjects = [] } = useQuery({
     queryKey: ["shared-projects"],
@@ -122,6 +129,9 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
   const [selectedTrack, setSelectedTrack] = useState<Track | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCoverModalOpen, setIsCoverModalOpen] = useState(false);
+  const [isUntitledImportModalOpen, setIsUntitledImportModalOpen] =
+    useState(false);
+  const [isCoverGeneratorOpen, setIsCoverGeneratorOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isVersionsModalOpen, setIsVersionsModalOpen] = useState(false);
   const [versionUploadTrack, setVersionUploadTrack] = useState<Track | null>(
@@ -202,12 +212,29 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
       }
 
       setIsUploading(true);
+      const toastId = `upload-${Date.now()}`;
       let successCount = 0;
       let failCount = 0;
 
-      for (const file of files) {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        toast.uploadProgress(toastId, {
+          fileCount: files.length,
+          currentFileIndex: i,
+          currentFileName: file.name,
+          currentFileProgress: 0,
+        });
+
         try {
-          await uploadTrack(file, project.id);
+          await uploadTrack(file, project.id, undefined, (percent) => {
+            toast.uploadProgress(toastId, {
+              fileCount: files.length,
+              currentFileIndex: i,
+              currentFileName: file.name,
+              currentFileProgress: percent,
+            });
+          });
           successCount++;
         } catch (error) {
           console.error(`Failed to upload ${file.name}:`, error);
@@ -215,12 +242,13 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
         }
       }
 
+      toast.dismiss(toastId);
       setIsUploading(false);
       queryClient.invalidateQueries({ queryKey: trackKeys.list(project.id) });
 
       if (successCount > 0) {
         toast.success(
-          `Successfully uploaded ${successCount} track${successCount > 1 ? "s" : ""}`,
+          `Uploaded ${successCount} track${successCount > 1 ? "s" : ""}`,
         );
       }
       if (failCount > 0) {
@@ -573,6 +601,24 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
     e.currentTarget.blur();
   }, []);
 
+  const handleUntitledImported = useCallback(
+    (result: ImportUntitledResponse) => {
+      if (!project) return;
+      queryClient.invalidateQueries({ queryKey: trackKeys.list(project.id) });
+
+      toast.untitledImportSuccess({
+        title: `Imported into ${project.name}`,
+        description:
+          result.failed > 0
+            ? `${result.imported} track${result.imported === 1 ? "" : "s"} made it into Vault. ${result.failed} could not be imported.`
+            : `${result.imported} track${result.imported === 1 ? "" : "s"} moved from untitled into your self-hosted Vault project.`,
+        imported: result.imported,
+        failed: result.failed,
+      });
+    },
+    [project, queryClient],
+  );
+
   if (!projectLoading && !tracksLoading && !project) {
     return <LinkNotAvailable />;
   }
@@ -781,6 +827,12 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
                 <span>{tracks.length} tracks</span>
                 <DotIcon className="w-4 shrink-0" />
                 <span>{totalDuration}</span>
+                {isProjectOwned && projectStreamStats && projectStreamStats.total_streams > 0 && (
+                  <>
+                    <DotIcon className="w-4 shrink-0" />
+                    <span>{projectStreamStats.total_streams.toLocaleString()} {projectStreamStats.total_streams === 1 ? "play" : "plays"}</span>
+                  </>
+                )}
               </div>
             </div>
 
@@ -801,6 +853,7 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
               isUploading={isUploading}
               canEdit={!!canEditProject}
               fileInputRef={fileInputRef}
+              onImportUntitledClick={() => setIsUntitledImportModalOpen(true)}
               isPlaying={isPlaying}
               currentTrackId={currentTrack?.id}
               onDragStart={handleDragStart}
@@ -912,6 +965,14 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
           isProjectOwned ||
           (isInSharedProject && !!sharedProject?.allow_downloads)
         }
+        isCoverGeneratorOpen={isCoverGeneratorOpen}
+        onOpenCoverGenerator={() => setIsCoverGeneratorOpen(true)}
+        onCloseCoverGenerator={() => setIsCoverGeneratorOpen(false)}
+        onApplyCover={async (file) => {
+          if (!project) return;
+          await coverUploadMutation.mutateAsync({ projectId: project.public_id, file });
+        }}
+        projectName={project.name}
         isSmallScreen={isSmallScreen}
         isNotesOpen={isNotesOpen}
         onCloseNotes={() => {
@@ -921,6 +982,12 @@ function ProjectPageContent({ projectId }: { projectId: string }) {
         notesTrack={notesTrack}
         isGlobalSearchOpen={search.isGlobalSearchOpen}
         onCloseGlobalSearch={() => search.setIsGlobalSearchOpen(false)}
+      />
+      <ImportUntitledModal
+        isOpen={isUntitledImportModalOpen}
+        onClose={() => setIsUntitledImportModalOpen(false)}
+        projectId={project.public_id}
+        onImported={handleUntitledImported}
       />
     </>
   );

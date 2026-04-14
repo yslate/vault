@@ -1,6 +1,7 @@
 package sharing
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"io"
@@ -65,6 +66,9 @@ func (h *SharingHandler) StreamSharedTrack(w http.ResponseWriter, r *http.Reques
 		return apperr.NewInternal("failed to query track file", err)
 	}
 
+	trackID := track.ID
+	go h.recordEvent(context.Background(), "listen", track.UserID, &trackID, track.Title, nil, "Someone")
+
 	http.ServeFile(w, r, trackFile.FilePath)
 	return nil
 }
@@ -126,6 +130,9 @@ func (h *SharingHandler) StreamSharedProjectTrack(w http.ResponseWriter, r *http
 	} else if err != nil {
 		return apperr.NewInternal("failed to query track file", err)
 	}
+
+	sharedTrackID := track.ID
+	go h.recordEvent(context.Background(), "listen", track.UserID, &sharedTrackID, track.Title, nil, "Someone")
 
 	http.ServeFile(w, r, trackFile.FilePath)
 	return nil

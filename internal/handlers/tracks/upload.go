@@ -1,8 +1,10 @@
 package tracks
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -45,7 +47,44 @@ func (h *TracksHandler) UploadTrack(w http.ResponseWriter, r *http.Request) erro
 		return apperr.NewBadRequest("project_id is required")
 	}
 
-	ctx := r.Context()
+	project, err := h.resolveEditableProject(r.Context(), projectIDStr, int64(userID))
+	if err != nil {
+		return err
+	}
+
+	title := r.FormValue("title")
+	if title == "" {
+		title = strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
+	}
+
+	track, err := h.createTrackFromReader(r.Context(), createTrackFromReaderInput{
+		ActingUserID: int64(userID),
+		Project:      project,
+		Title:        title,
+		Artist:       r.FormValue("artist"),
+		Album:        r.FormValue("album"),
+		OriginalName: header.Filename,
+		Reader:       file,
+	})
+	if err != nil {
+		return err
+	}
+
+	return httputil.CreatedResult(w, convertTrack(track))
+}
+
+type createTrackFromReaderInput struct {
+	ActingUserID int64
+	Project      sqlc.Project
+	Title        string
+	Artist       string
+	Album        string
+	VersionName  string
+	OriginalName string
+	Reader       io.Reader
+}
+
+func (h *TracksHandler) resolveEditableProject(ctx context.Context, projectIDStr string, userID int64) (sqlc.Project, error) {
 	var project sqlc.Project
 
 	if id, err := strconv.ParseInt(projectIDStr, 10, 64); err == nil {
@@ -63,49 +102,59 @@ func (h *TracksHandler) UploadTrack(w http.ResponseWriter, r *http.Request) erro
 	}
 
 	if project.ID == 0 {
-		return apperr.NewNotFound("project not found")
+		return sqlc.Project{}, apperr.NewNotFound("project not found")
 	}
 
-	isProjectOwner := project.UserID == int64(userID)
-	if !isProjectOwner {
-		share, err := h.db.Queries.GetUserProjectShare(ctx, sqlc.GetUserProjectShareParams{
-			ProjectID: project.ID,
-			SharedTo:  int64(userID),
-		})
-		if errors.Is(err, sql.ErrNoRows) {
-			return apperr.NewForbidden("access denied")
-		}
-		if err != nil {
-			return apperr.NewInternal("failed to check share access", err)
-		}
-		if !share.CanEdit {
-			return apperr.NewForbidden("editing not allowed for this shared project")
-		}
+	if project.UserID == userID {
+		return project, nil
 	}
 
-	title := r.FormValue("title")
+	share, err := h.db.Queries.GetUserProjectShare(ctx, sqlc.GetUserProjectShareParams{
+		ProjectID: project.ID,
+		SharedTo:  userID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return sqlc.Project{}, apperr.NewForbidden("access denied")
+	}
+	if err != nil {
+		return sqlc.Project{}, apperr.NewInternal("failed to check share access", err)
+	}
+	if !share.CanEdit {
+		return sqlc.Project{}, apperr.NewForbidden("editing not allowed for this shared project")
+	}
+
+	return project, nil
+}
+
+func (h *TracksHandler) createTrackFromReader(ctx context.Context, input createTrackFromReaderInput) (sqlc.Track, error) {
+	ext := strings.ToLower(filepath.Ext(input.OriginalName))
+	if !transcoding.IsAllowedUploadExtension(ext) {
+		return sqlc.Track{}, apperr.NewBadRequest("unsupported file format")
+	}
+
+	title := strings.TrimSpace(input.Title)
 	if title == "" {
-		title = strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
+		title = strings.TrimSuffix(input.OriginalName, filepath.Ext(input.OriginalName))
 	}
 
 	artist := sql.NullString{}
-	if artistVal := r.FormValue("artist"); artistVal != "" {
+	if artistVal := strings.TrimSpace(input.Artist); artistVal != "" {
 		artist = sql.NullString{String: artistVal, Valid: true}
 	}
 
 	album := sql.NullString{}
-	if albumVal := r.FormValue("album"); albumVal != "" {
+	if albumVal := strings.TrimSpace(input.Album); albumVal != "" {
 		album = sql.NullString{String: albumVal, Valid: true}
 	}
 
 	publicID, err := ids.NewPublicID()
 	if err != nil {
-		return apperr.NewInternal("failed to generate track id", err)
+		return sqlc.Track{}, apperr.NewInternal("failed to generate track id", err)
 	}
 
-	maxOrderResult, err := h.db.Queries.GetMaxTrackOrderByProject(ctx, project.ID)
+	maxOrderResult, err := h.db.Queries.GetMaxTrackOrderByProject(ctx, input.Project.ID)
 	if err != nil {
-		return apperr.NewInternal("failed to get track order", err)
+		return sqlc.Track{}, apperr.NewInternal("failed to get track order", err)
 	}
 
 	maxOrder, ok := maxOrderResult.(int64)
@@ -114,27 +163,28 @@ func (h *TracksHandler) UploadTrack(w http.ResponseWriter, r *http.Request) erro
 	}
 
 	track, err := h.db.CreateTrack(ctx, sqlc.CreateTrackParams{
-		UserID:    int64(userID),
-		ProjectID: project.ID,
+		UserID:    input.ActingUserID,
+		ProjectID: input.Project.ID,
 		Title:     title,
 		Artist:    artist,
 		Album:     album,
 		PublicID:  publicID,
 	})
 	if err != nil {
-		return apperr.NewInternal("failed to create track", err)
+		return sqlc.Track{}, apperr.NewInternal("failed to create track", err)
 	}
 
-	newOrder := maxOrder + 1
-	err = h.db.Queries.UpdateTrackOrder(ctx, sqlc.UpdateTrackOrderParams{
-		TrackOrder: newOrder,
+	if err := h.db.Queries.UpdateTrackOrder(ctx, sqlc.UpdateTrackOrderParams{
+		TrackOrder: maxOrder + 1,
 		ID:         track.ID,
-	})
-	if err != nil {
-		return apperr.NewInternal("failed to set track order", err)
+	}); err != nil {
+		return sqlc.Track{}, apperr.NewInternal("failed to set track order", err)
 	}
 
-	versionName := strings.TrimSuffix(header.Filename, filepath.Ext(header.Filename))
+	versionName := strings.TrimSpace(input.VersionName)
+	if versionName == "" {
+		versionName = strings.TrimSuffix(input.OriginalName, filepath.Ext(input.OriginalName))
+	}
 	if versionName == "" {
 		versionName = "Original Upload"
 	}
@@ -147,32 +197,31 @@ func (h *TracksHandler) UploadTrack(w http.ResponseWriter, r *http.Request) erro
 		VersionOrder:    1,
 	})
 	if err != nil {
-		return apperr.NewInternal("failed to create version", err)
+		return sqlc.Track{}, apperr.NewInternal("failed to create version", err)
 	}
 
-	err = h.db.SetActiveVersion(ctx, sqlc.SetActiveVersionParams{
+	if err := h.db.SetActiveVersion(ctx, sqlc.SetActiveVersionParams{
 		ActiveVersionID: sql.NullInt64{Int64: version.ID, Valid: true},
 		ID:              track.ID,
-	})
-	if err != nil {
-		return apperr.NewInternal("failed to set active version", err)
+	}); err != nil {
+		return sqlc.Track{}, apperr.NewInternal("failed to set active version", err)
 	}
 
-	saveResult, err := h.storage.SaveTrackSource(r.Context(), storage.SaveTrackSourceInput{
-		ProjectPublicID: project.PublicID,
+	saveResult, err := h.storage.SaveTrackSource(ctx, storage.SaveTrackSourceInput{
+		ProjectPublicID: input.Project.PublicID,
 		TrackID:         track.ID,
 		VersionID:       version.ID,
-		OriginalName:    header.Filename,
-		Reader:          file,
+		OriginalName:    input.OriginalName,
+		Reader:          input.Reader,
 	})
 	if err != nil {
-		return apperr.NewInternal("failed to save file", err)
+		return sqlc.Track{}, apperr.NewInternal("failed to save file", err)
 	}
 
 	if transcoding.IsVideoExtension(ext) {
 		wavPath, err := transcoding.ExtractAudioToWAV(saveResult.Path)
 		if err != nil {
-			return apperr.NewInternal("failed to extract audio from video", err)
+			return sqlc.Track{}, apperr.NewInternal("failed to extract audio from video", err)
 		}
 		saveResult.Path = wavPath
 		saveResult.Format = "wav"
@@ -196,39 +245,35 @@ func (h *TracksHandler) UploadTrack(w http.ResponseWriter, r *http.Request) erro
 		}
 	}
 
-	format := saveResult.Format
-	quality := "source"
-
 	var bitrate sql.NullInt64
 	if metadata.Bitrate > 0 {
 		bitrate = sql.NullInt64{Int64: int64(metadata.Bitrate), Valid: true}
 	}
 
-	_, err = h.db.CreateTrackFile(ctx, sqlc.CreateTrackFileParams{
+	if _, err := h.db.CreateTrackFile(ctx, sqlc.CreateTrackFileParams{
 		VersionID:         version.ID,
-		Quality:           quality,
+		Quality:           "source",
 		FilePath:          saveResult.Path,
 		FileSize:          saveResult.Size,
-		Format:            format,
+		Format:            saveResult.Format,
 		Bitrate:           bitrate,
 		ContentHash:       sql.NullString{},
 		TranscodingStatus: sql.NullString{String: "completed", Valid: true},
-		OriginalFilename:  sql.NullString{String: header.Filename, Valid: true},
-	})
-	if err != nil {
-		return apperr.NewInternal("failed to create track file record", err)
+		OriginalFilename:  sql.NullString{String: input.OriginalName, Valid: true},
+	}); err != nil {
+		return sqlc.Track{}, apperr.NewInternal("failed to create track file record", err)
 	}
 
 	if h.transcoder != nil {
-		err = h.transcoder.TranscodeVersion(ctx, transcoding.TranscodeVersionInput{
+		if err := h.transcoder.TranscodeVersion(ctx, transcoding.TranscodeVersionInput{
 			VersionID:      version.ID,
 			SourceFilePath: saveResult.Path,
 			TrackPublicID:  track.PublicID,
-			UserID:         int64(userID),
-		})
-		if err != nil {
+			UserID:         input.ActingUserID,
+		}); err != nil {
 			slog.Debug("failed to queue transcoding", "error", err)
 		}
 	}
-	return httputil.CreatedResult(w, convertTrack(track))
+
+	return track, nil
 }

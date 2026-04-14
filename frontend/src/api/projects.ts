@@ -1,6 +1,13 @@
 import { get, post, put, del, getCSRFToken } from './client'
 import { getProjectCoverUrl } from './media'
-import type { Project, CreateProjectRequest, UpdateProjectRequest, MoveProjectRequest } from '../types/api'
+import type {
+  Project,
+  CreateProjectRequest,
+  UpdateProjectRequest,
+  MoveProjectRequest,
+  ImportUntitledProjectRequest,
+  ImportUntitledProjectResponse,
+} from '../types/api'
 import { env } from '../env'
 
 const API_BASE_URL = env.VITE_API_URL || ''
@@ -16,6 +23,12 @@ export async function getProject(id: string): Promise<Project> {
 
 export async function createProject(data: CreateProjectRequest): Promise<Project> {
   return post<Project>('/api/projects', data)
+}
+
+export async function importUntitledProject(
+  data: ImportUntitledProjectRequest
+): Promise<ImportUntitledProjectResponse> {
+  return post<ImportUntitledProjectResponse>('/api/projects/import/untitled', data)
 }
 
 export async function updateProject(

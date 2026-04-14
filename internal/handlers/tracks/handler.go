@@ -19,20 +19,28 @@ import (
 )
 
 type TracksHandler struct {
-	db         *db.DB
-	storage    storage.Storage
-	transcoder Transcoder
+	db             *db.DB
+	storage        storage.Storage
+	transcoder     Transcoder
+	projectService service.ProjectService
+	progressSender UntitledImportProgressSender
 }
 
 type Transcoder interface {
 	TranscodeVersion(ctx context.Context, input transcoding.TranscodeVersionInput) error
 }
 
-func NewTracksHandler(database *db.DB, storageAdapter storage.Storage, transcoder Transcoder) *TracksHandler {
+type UntitledImportProgressSender interface {
+	SendUntitledImportProgress(userID int64, stage string, current, total int, filename string)
+}
+
+func NewTracksHandler(database *db.DB, storageAdapter storage.Storage, transcoder Transcoder, projectService service.ProjectService, progressSender UntitledImportProgressSender) *TracksHandler {
 	return &TracksHandler{
-		db:         database,
-		storage:    storageAdapter,
-		transcoder: transcoder,
+		db:             database,
+		storage:        storageAdapter,
+		transcoder:     transcoder,
+		projectService: projectService,
+		progressSender: progressSender,
 	}
 }
 

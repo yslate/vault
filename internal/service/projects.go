@@ -7,11 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"log/slog"
 	"bungleware/vault/internal/db"
 	sqlc "bungleware/vault/internal/db/sqlc"
 	"bungleware/vault/internal/ids"
@@ -80,7 +80,7 @@ type CoverStream struct {
 	HasUpdatedAt bool
 }
 
-func NewProjectService(database *db.DB, storageAdapter storage.Storage) ProjectService {
+func NewProjectService(database *db.DB, storageAdapter storage.Storage, _ any) ProjectService {
 	return &projectService{
 		db:      database,
 		storage: storageAdapter,
@@ -163,7 +163,7 @@ func (s *projectService) CreateProject(ctx context.Context, input CreateProjectI
 		folderID = sql.NullInt64{Int64: *input.FolderID, Valid: true}
 	}
 
-	return s.db.CreateProject(ctx, sqlc.CreateProjectParams{
+	project, err := s.db.CreateProject(ctx, sqlc.CreateProjectParams{
 		UserID:          input.UserID,
 		Name:            input.Name,
 		Description:     description,
@@ -172,6 +172,11 @@ func (s *projectService) CreateProject(ctx context.Context, input CreateProjectI
 		AuthorOverride:  authorOverride,
 		FolderID:        folderID,
 	})
+	if err != nil {
+		return sqlc.Project{}, err
+	}
+
+	return project, nil
 }
 
 func (s *projectService) ListProjects(ctx context.Context, userID int64) ([]sqlc.ListProjectsByUserRow, error) {

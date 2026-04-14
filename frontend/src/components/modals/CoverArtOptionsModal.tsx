@@ -1,4 +1,4 @@
-import { X, FolderOpen, Download } from "lucide-react";
+import { X, FolderOpen, Download, Sparkles } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ interface CoverArtOptionsModalProps {
   onClose: () => void;
   onLibraryClick: () => void;
   onExportClick: () => void;
+  onGenerateClick?: () => void;
   hasExistingCover: boolean;
   canEdit?: boolean;
   canDownload?: boolean;
@@ -18,6 +19,7 @@ export default function CoverArtOptionsModal({
   onClose,
   onLibraryClick,
   onExportClick,
+  onGenerateClick,
   hasExistingCover,
   canEdit = true,
   canDownload = true,
@@ -29,6 +31,11 @@ export default function CoverArtOptionsModal({
 
   const handleExportClick = () => {
     onExportClick();
+    onClose();
+  };
+
+  const handleGenerateClick = () => {
+    onGenerateClick?.();
     onClose();
   };
 
@@ -74,6 +81,23 @@ export default function CoverArtOptionsModal({
               </div>
 
               <div className="p-4 space-y-2">
+                {canEdit && onGenerateClick && (
+                  <button
+                    onClick={handleGenerateClick}
+                    className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors text-left"
+                    type="button"
+                  >
+                    <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10">
+                      <Sparkles className="size-5" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="font-semibold text-base">Generate</div>
+                      <div className="text-sm text-white/60">
+                        Create cover art in the studio
+                      </div>
+                    </div>
+                  </button>
+                )}
                 {canEdit && (
                   <button
                     onClick={handleLibraryClick}

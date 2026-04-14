@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, FolderPlus, FilePlus } from "lucide-react";
+import { Plus, FolderPlus, FilePlus, Link2 } from "lucide-react";
 import { useWebHaptics } from "web-haptics/react";
 
 interface MorphingAddButtonProps {
   onAddProject: () => void;
   onAddFolder: () => void;
+  onImportUntitled: () => void;
   isCreatingProject?: boolean;
   isCreatingFolder?: boolean;
+  isImportingUntitled?: boolean;
   className?: string;
   bottomOffset?: string;
 }
@@ -15,8 +17,10 @@ interface MorphingAddButtonProps {
 export default function MorphingAddButton({
   onAddProject,
   onAddFolder,
+  onImportUntitled,
   isCreatingProject = false,
   isCreatingFolder = false,
+  isImportingUntitled = false,
   className = "",
   bottomOffset,
 }: MorphingAddButtonProps) {
@@ -41,6 +45,12 @@ export default function MorphingAddButton({
   };
 
   const handleBackdropClick = () => {
+    setIsExpanded(false);
+  };
+
+  const handleImportUntitled = () => {
+    haptic.trigger("light");
+    onImportUntitled();
     setIsExpanded(false);
   };
 
@@ -160,6 +170,34 @@ export default function MorphingAddButton({
                 >
                   <FolderPlus className="size-5" />
                   Add folder
+                </motion.button>
+                <motion.button
+                  initial={{
+                    opacity: 0,
+                    scale: 0.9,
+                    filter: "blur(8px)",
+                  }}
+                  animate={{
+                    opacity: 1,
+                    scale: 1,
+                    filter: "blur(0px)",
+                  }}
+                  exit={{
+                    opacity: 0,
+                    filter: "blur(4px)",
+                  }}
+                  transition={{
+                    type: "spring",
+                    stiffness: 500,
+                    damping: 35,
+                    delay: 0.065,
+                  }}
+                  onClick={handleImportUntitled}
+                  disabled={isImportingUntitled}
+                  className="h-10 text-base font-semibold rounded-2xl px-6 inline-flex items-center justify-center gap-2 whitespace-nowrap bg-white/5 hover:bg-white/10 transition-colors cursor-pointer active:scale-95 disabled:opacity-50 disabled:pointer-events-none text-white border border-[#353333]"
+                >
+                  <Link2 className="size-5" />
+                  Import untitled
                 </motion.button>
                 <motion.button
                   initial={{

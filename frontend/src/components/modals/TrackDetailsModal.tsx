@@ -9,6 +9,7 @@ import {
   Copy,
   Trash2,
   Users,
+  PlayIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ import { usePrefetchProjects } from "@/hooks/useProjects";
 import { useQueryClient } from "@tanstack/react-query";
 import { trackKeys } from "@/hooks/useTracks";
 import { usePrefetchSharingData } from "@/hooks/useSharing";
+import { useTrackStreamStats } from "@/hooks/useNotifications";
 
 interface TrackDetailsModalProps {
   isOpen: boolean;
@@ -109,6 +111,11 @@ function TrackDetailsModal({
   const prefetchProjects = usePrefetchProjects();
   const prefetchSharingData = usePrefetchSharingData();
   const titleInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: streamStats } = useTrackStreamStats(
+    isProjectOwned ? trackId : undefined,
+    isOpen && isProjectOwned,
+  );
 
   const canDownload = useMemo(
     () =>
@@ -537,6 +544,24 @@ function TrackDetailsModal({
                             {track.key && ` • ${track.key}`}
                             {track.bpm && ` • ${track.bpm} BPM`}
                           </div>
+
+                          {/* Stream Stats (owner only) */}
+                          {isProjectOwned && streamStats && (streamStats.stream_count > 0 || streamStats.download_count > 0) && (
+                            <div className="flex items-center gap-3 mt-1">
+                              {streamStats.stream_count > 0 && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <PlayIcon className="size-3" />
+                                  {streamStats.stream_count.toLocaleString()} {streamStats.stream_count === 1 ? "play" : "plays"}
+                                </span>
+                              )}
+                              {streamStats.download_count > 0 && (
+                                <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                                  <Download className="size-3" />
+                                  {streamStats.download_count.toLocaleString()} {streamStats.download_count === 1 ? "download" : "downloads"}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
                         {(() => {

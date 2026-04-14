@@ -18,6 +18,14 @@ type Querier interface {
 	CountSubfoldersInFolder(ctx context.Context, parentID sql.NullInt64) (int64, error)
 	CountTrackVersions(ctx context.Context, trackID int64) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
+	CreateListenEvent(ctx context.Context, arg CreateListenEventParams) (ListenEvent, error)
+	DeleteListenEvent(ctx context.Context, arg DeleteListenEventParams) error
+	GetListenEvents(ctx context.Context, trackOwnerID int64) ([]ListenEvent, error)
+	GetProjectStreamStats(ctx context.Context, projectID int64) ([]GetProjectStreamStatsRow, error)
+	GetTrackStats(ctx context.Context, trackID int64) (GetTrackStatsRow, error)
+	GetUnreadListenEventsCount(ctx context.Context, trackOwnerID int64) (int64, error)
+	MarkAllListenEventsRead(ctx context.Context, trackOwnerID int64) error
+	RecentListenEventExists(ctx context.Context, arg RecentListenEventExistsParams) (int64, error)
 	// FEDERATION TOKENS
 	CreateFederationToken(ctx context.Context, arg CreateFederationTokenParams) (FederationToken, error)
 	CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error)

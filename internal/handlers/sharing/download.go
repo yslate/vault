@@ -2,6 +2,7 @@ package sharing
 
 import (
 	"archive/zip"
+	"context"
 	"io"
 	"net/http"
 	"os"
@@ -57,6 +58,10 @@ func (h *SharingHandler) DownloadSharedTrack(w http.ResponseWriter, r *http.Requ
 	}
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+track.Title+"."+trackFile.Format+"\"")
 	w.Header().Set("Content-Type", "application/octet-stream")
+
+	trackID := track.ID
+	go h.recordEvent(context.Background(), "download", track.UserID, &trackID, track.Title, nil, "Someone")
+
 	http.ServeFile(w, r, trackFile.FilePath)
 	return nil
 }
@@ -104,6 +109,8 @@ func (h *SharingHandler) DownloadShared(w http.ResponseWriter, r *http.Request) 
 	if len(tracks) == 0 {
 		return apperr.NewBadRequest("no tracks in project")
 	}
+
+	go h.recordEvent(context.Background(), "download", project.UserID, nil, project.Name, nil, "Someone")
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+project.Name+".zip\"")
@@ -200,6 +207,10 @@ func (h *SharingHandler) DownloadSharedProjectTrack(w http.ResponseWriter, r *ht
 	}
 	w.Header().Set("Content-Disposition", "attachment; filename=\""+track.Title+"."+trackFile.Format+"\"")
 	w.Header().Set("Content-Type", "application/octet-stream")
+
+	trackID := track.ID
+	go h.recordEvent(context.Background(), "download", track.UserID, &trackID, track.Title, nil, "Someone")
+
 	http.ServeFile(w, r, trackFile.FilePath)
 	return nil
 }
