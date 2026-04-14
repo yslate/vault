@@ -25,4 +25,6 @@ frontend/node_modules/
 .DS_Store
 Thumbs.db
 
+**/CLAUDE.md
+
 __pycache__/
