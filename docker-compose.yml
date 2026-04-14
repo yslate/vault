@@ -36,7 +36,7 @@ services:
       - vault-network
 
   watchtower:
-    image: containrrr/watchtower
+    image: containrrr/watchtower:1.4.0
     container_name: watchtower
     restart: unless-stopped
     volumes:
