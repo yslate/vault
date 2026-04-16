@@ -175,14 +175,14 @@ func (s *StemSplitter) runDemucs(inputPath, outputDir string) error {
 		return fmt.Errorf("failed to create stems output directory: %w", err)
 	}
 
-	// Use demucs with htdemucs model (best quality), output as WAV stems
+	// Use demucs with htdemucs model (best quality), output as float32 WAV stems
 	// --two-stems is NOT used so we get all 4 stems: vocals, drums, bass, other
 	cmd := exec.Command(
 		"demucs",
-		"--name", "htdemucs",
-		"--out", outputDir,
+		"-n", "htdemucs",
+		"-o", outputDir,
 		"--filename", "{stem}.{ext}",
-		"--wav",
+		"--float32",
 		inputPath,
 	)
 
