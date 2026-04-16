@@ -11,12 +11,14 @@ RUN --mount=type=cache,target=/root/.bun/install/cache \
 COPY frontend/ ./
 RUN bun run build
 
-FROM docker.io/library/golang:1.25-alpine AS backend-builder
+FROM docker.io/library/golang:1.25-bookworm AS backend-builder
 
 ARG GIT_COMMIT=unknown
 ARG GIT_VERSION=dev
 
-RUN apk add --no-cache git sqlite gcc musl-dev
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git sqlite3 libsqlite3-dev gcc && \
+    rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
@@ -31,13 +33,14 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     go build -ldflags="-w -s -X main.CommitSHA=${GIT_COMMIT} -X main.Version=${GIT_VERSION}" \
     -o ../../bin/vault-server
 
-FROM docker.io/library/alpine:latest
+FROM docker.io/library/python:3.12-slim
 
-RUN apk add --no-cache ca-certificates ffmpeg sqlite wget \
-    python3 py3-pip && \
-    pip3 install --break-system-packages --no-cache-dir demucs && \
-    addgroup -g 1000 vault && \
-    adduser -D -u 1000 -G vault vault
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates ffmpeg sqlite3 wget && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir -U demucs && \
+    groupadd -g 1000 vault && \
+    useradd -u 1000 -g vault -m vault
 
 USER 1000:1000
 WORKDIR /app
