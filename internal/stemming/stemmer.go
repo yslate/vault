@@ -176,6 +176,7 @@ func (s *StemSplitter) runDemucs(inputPath, outputDir string) error {
 	}
 
 	// Use demucs with htdemucs model (best quality), output as float32 WAV stems
+	// --segment limits peak RAM to ~2GB (default is full track which needs 4-6GB)
 	// --two-stems is NOT used so we get all 4 stems: vocals, drums, bass, other
 	cmd := exec.Command(
 		"demucs",
@@ -183,6 +184,7 @@ func (s *StemSplitter) runDemucs(inputPath, outputDir string) error {
 		"-o", outputDir,
 		"--filename", "{stem}.{ext}",
 		"--float32",
+		"--segment", "25",
 		inputPath,
 	)
 

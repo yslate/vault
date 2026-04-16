@@ -38,7 +38,7 @@ FROM docker.io/library/python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates ffmpeg sqlite3 wget && \
     rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir -U demucs && \
+    pip install --no-cache-dir -U demucs torchcodec && \
     groupadd -g 1000 vault && \
     useradd -u 1000 -g vault -m vault
 
