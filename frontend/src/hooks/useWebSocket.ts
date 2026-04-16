@@ -58,6 +58,10 @@ export function useWebSocket(enabled: boolean = true) {
             queryClient.invalidateQueries({ queryKey: trackKeys.all })
           }
 
+          if (message.type === 'stem_splitting_update') {
+            queryClient.invalidateQueries({ queryKey: ['stems'] })
+          }
+
           messageListeners.forEach((listener) => listener(message))
         } catch (error) {
           console.error('[WebSocket] Failed to parse message:', error)

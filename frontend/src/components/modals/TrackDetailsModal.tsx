@@ -10,6 +10,7 @@ import {
   Trash2,
   Users,
   PlayIcon,
+  Scissors,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ import { toast } from "@/routes/__root";
 import DeleteTrackModal from "./DeleteTrackModal";
 import MoveTrackModal from "./MoveTrackModal";
 import ShareModal from "./ShareModal";
+import StemsModal from "./StemsModal";
 import ScrollingText from "@/components/ScrollingText";
 import {
   deleteTrack,
@@ -69,7 +71,7 @@ interface TrackDetailsModalProps {
   shouldFocusTitle?: boolean;
 }
 
-type ModalState = "closed" | "details" | "versions" | "share";
+type ModalState = "closed" | "details" | "versions" | "share" | "stems";
 
 function TrackDetailsModal({
   isOpen,
@@ -702,6 +704,12 @@ function TrackDetailsModal({
                               />
                             )}
                             <ActionButton
+                              icon={Scissors}
+                              label="Split stems"
+                              onClick={() => setModalState("stems")}
+                              position="middle"
+                            />
+                            <ActionButton
                               icon={ListPlus}
                               label="Add to queue"
                               onClick={handleAddToQueue}
@@ -806,6 +814,13 @@ function TrackDetailsModal({
         currentVisibility={localTrack.visibility_status || "private"}
         onUpdate={onUpdate}
         isOwned={isProjectOwned}
+      />
+      <StemsModal
+        isOpen={modalState === "stems"}
+        onClose={handleClose}
+        onBack={() => setModalState("details")}
+        trackId={trackId}
+        trackTitle={localTrack.title}
       />
     </>
   );

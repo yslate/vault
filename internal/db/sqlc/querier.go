@@ -18,18 +18,11 @@ type Querier interface {
 	CountSubfoldersInFolder(ctx context.Context, parentID sql.NullInt64) (int64, error)
 	CountTrackVersions(ctx context.Context, trackID int64) (int64, error)
 	CountUsers(ctx context.Context) (int64, error)
-	CreateListenEvent(ctx context.Context, arg CreateListenEventParams) (ListenEvent, error)
-	DeleteListenEvent(ctx context.Context, arg DeleteListenEventParams) error
-	GetListenEvents(ctx context.Context, trackOwnerID int64) ([]ListenEvent, error)
-	GetProjectStreamStats(ctx context.Context, projectID int64) ([]GetProjectStreamStatsRow, error)
-	GetTrackStats(ctx context.Context, trackID int64) (GetTrackStatsRow, error)
-	GetUnreadListenEventsCount(ctx context.Context, trackOwnerID int64) (int64, error)
-	MarkAllListenEventsRead(ctx context.Context, trackOwnerID int64) error
-	RecentListenEventExists(ctx context.Context, arg RecentListenEventExistsParams) (int64, error)
 	// FEDERATION TOKENS
 	CreateFederationToken(ctx context.Context, arg CreateFederationTokenParams) (FederationToken, error)
 	CreateFolder(ctx context.Context, arg CreateFolderParams) (Folder, error)
 	CreateInviteToken(ctx context.Context, arg CreateInviteTokenParams) (InviteToken, error)
+	CreateListenEvent(ctx context.Context, arg CreateListenEventParams) (ListenEvent, error)
 	CreateProject(ctx context.Context, arg CreateProjectParams) (Project, error)
 	CreateProjectNote(ctx context.Context, arg CreateProjectNoteParams) (Note, error)
 	// PROJECT SHARE TOKENS
@@ -43,6 +36,7 @@ type Querier interface {
 	CreateShareToken(ctx context.Context, arg CreateShareTokenParams) (ShareToken, error)
 	CreateSharedProjectOrganization(ctx context.Context, arg CreateSharedProjectOrganizationParams) (UserSharedProjectOrganization, error)
 	CreateSharedTrackOrganization(ctx context.Context, arg CreateSharedTrackOrganizationParams) (UserSharedTrackOrganization, error)
+	CreateStemJob(ctx context.Context, arg CreateStemJobParams) (StemJob, error)
 	CreateTrack(ctx context.Context, arg CreateTrackParams) (Track, error)
 	CreateTrackFile(ctx context.Context, arg CreateTrackFileParams) (TrackFile, error)
 	CreateTrackNote(ctx context.Context, arg CreateTrackNoteParams) (Note, error)
@@ -63,6 +57,7 @@ type Querier interface {
 	DeleteFederationTokenByToken(ctx context.Context, token string) error
 	DeleteFolder(ctx context.Context, arg DeleteFolderParams) error
 	DeleteFolderByID(ctx context.Context, id int64) error
+	DeleteListenEvent(ctx context.Context, arg DeleteListenEventParams) error
 	DeleteNote(ctx context.Context, arg DeleteNoteParams) error
 	DeleteProject(ctx context.Context, arg DeleteProjectParams) error
 	DeleteProjectShareToken(ctx context.Context, arg DeleteProjectShareTokenParams) error
@@ -75,6 +70,8 @@ type Querier interface {
 	DeleteSharedProjectOrganization(ctx context.Context, arg DeleteSharedProjectOrganizationParams) error
 	DeleteSharedTrackOrganization(ctx context.Context, arg DeleteSharedTrackOrganizationParams) error
 	DeleteStaleWebSocketSessions(ctx context.Context) error
+	DeleteStemFilesByVersion(ctx context.Context, versionID int64) error
+	DeleteStemJobsByVersion(ctx context.Context, versionID int64) error
 	DeleteTrack(ctx context.Context, arg DeleteTrackParams) error
 	DeleteTrackFile(ctx context.Context, id int64) error
 	DeleteTrackFilesByVersion(ctx context.Context, versionID int64) error
@@ -98,6 +95,7 @@ type Querier interface {
 	GetInstanceConfig(ctx context.Context) (InstanceConfig, error)
 	GetInstanceSettings(ctx context.Context) (InstanceSetting, error)
 	GetInviteTokenByToken(ctx context.Context, tokenHash string) (InviteToken, error)
+	GetListenEvents(ctx context.Context, trackOwnerID int64) ([]ListenEvent, error)
 	// Get the maximum custom_order across all item types at root level
 	GetMaxOrderAtRoot(ctx context.Context, userID int64) (interface{}, error)
 	// Get the maximum custom_order across all item types in a folder
@@ -118,6 +116,7 @@ type Querier interface {
 	GetProjectShareToken(ctx context.Context, token string) (ProjectShareToken, error)
 	GetProjectShareTokenByID(ctx context.Context, arg GetProjectShareTokenByIDParams) (ProjectShareToken, error)
 	GetProjectShareTokenByProject(ctx context.Context, arg GetProjectShareTokenByProjectParams) (ProjectShareToken, error)
+	GetProjectStreamStats(ctx context.Context, projectID int64) ([]GetProjectStreamStatsRow, error)
 	GetPublicProjects(ctx context.Context, arg GetPublicProjectsParams) ([]Project, error)
 	GetPublicTracks(ctx context.Context, arg GetPublicTracksParams) ([]Track, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
@@ -127,6 +126,8 @@ type Querier interface {
 	GetShareToken(ctx context.Context, token string) (ShareToken, error)
 	GetShareTokenByID(ctx context.Context, arg GetShareTokenByIDParams) (ShareToken, error)
 	GetShareTokenByTrack(ctx context.Context, arg GetShareTokenByTrackParams) (ShareToken, error)
+	GetStemJob(ctx context.Context, id int64) (StemJob, error)
+	GetStemJobByVersionID(ctx context.Context, versionID int64) (StemJob, error)
 	GetStorageStatsByUser(ctx context.Context, userID int64) (GetStorageStatsByUserRow, error)
 	GetTokensByUser(ctx context.Context, arg GetTokensByUserParams) ([]InviteToken, error)
 	GetTrack(ctx context.Context, arg GetTrackParams) (Track, error)
@@ -134,9 +135,12 @@ type Querier interface {
 	GetTrackByPublicID(ctx context.Context, arg GetTrackByPublicIDParams) (Track, error)
 	GetTrackByPublicIDNoFilter(ctx context.Context, publicID string) (Track, error)
 	GetTrackFile(ctx context.Context, arg GetTrackFileParams) (TrackFile, error)
+	GetTrackFileByID(ctx context.Context, id int64) (TrackFile, error)
+	GetTrackStats(ctx context.Context, trackID sql.NullInt64) (GetTrackStatsRow, error)
 	GetTrackVersion(ctx context.Context, id int64) (TrackVersion, error)
 	GetTrackVersionWithOwnership(ctx context.Context, id int64) (GetTrackVersionWithOwnershipRow, error)
 	GetTrackWithDetails(ctx context.Context, arg GetTrackWithDetailsParams) (GetTrackWithDetailsRow, error)
+	GetUnreadListenEventsCount(ctx context.Context, trackOwnerID int64) (int64, error)
 	GetUserByEmail(ctx context.Context, email string) (User, error)
 	GetUserByID(ctx context.Context, id int64) (User, error)
 	GetUserByUsername(ctx context.Context, username string) (User, error)
@@ -151,9 +155,9 @@ type Querier interface {
 	GetUserTrackShare(ctx context.Context, arg GetUserTrackShareParams) (UserTrackShare, error)
 	GetUserTrackShareByID(ctx context.Context, id int64) (UserTrackShare, error)
 	GetWebSocketSession(ctx context.Context, sessionID string) (WebsocketSession, error)
-	IncrementTrackOrdersByProject(ctx context.Context, projectID int64) error
 	IncrementAccessCount(ctx context.Context, id int64) error
 	IncrementProjectAccessCount(ctx context.Context, id int64) error
+	IncrementTrackOrdersByProject(ctx context.Context, projectID int64) error
 	InvalidateSessions(ctx context.Context) error
 	ListAllFoldersByUser(ctx context.Context, userID int64) ([]Folder, error)
 	ListAllTrackFiles(ctx context.Context) ([]TrackFile, error)
@@ -183,6 +187,7 @@ type Querier interface {
 	ListSharedProjectOrganizationsInFolder(ctx context.Context, arg ListSharedProjectOrganizationsInFolderParams) ([]UserSharedProjectOrganization, error)
 	ListSharedTrackOrganizationsAtRoot(ctx context.Context, userID int64) ([]UserSharedTrackOrganization, error)
 	ListSharedTrackOrganizationsInFolder(ctx context.Context, arg ListSharedTrackOrganizationsInFolderParams) ([]UserSharedTrackOrganization, error)
+	ListStemFilesByVersion(ctx context.Context, versionID int64) ([]TrackFile, error)
 	ListTrackFilesByVersion(ctx context.Context, versionID int64) ([]TrackFile, error)
 	ListTrackVersions(ctx context.Context, trackID int64) ([]TrackVersion, error)
 	ListTrackVersionsWithMetadata(ctx context.Context, trackID int64) ([]ListTrackVersionsWithMetadataRow, error)
@@ -200,8 +205,10 @@ type Querier interface {
 	ListUsersProjectIsSharedWith(ctx context.Context, projectID int64) ([]UserProjectShare, error)
 	ListUsersTrackIsSharedWith(ctx context.Context, trackID int64) ([]UserTrackShare, error)
 	ListWebSocketSessionsByResource(ctx context.Context, arg ListWebSocketSessionsByResourceParams) ([]WebsocketSession, error)
+	MarkAllListenEventsRead(ctx context.Context, trackOwnerID int64) error
 	MarkCoverProcessed(ctx context.Context, id int64) error
 	MarkTokenAsUsed(ctx context.Context, id int64) (InviteToken, error)
+	RecentListenEventExists(ctx context.Context, arg RecentListenEventExistsParams) (int64, error)
 	RevokeRefreshToken(ctx context.Context, id int64) error
 	RevokeRefreshTokensByUser(ctx context.Context, userID int64) error
 	SearchTracksAccessibleByUser(ctx context.Context, arg SearchTracksAccessibleByUserParams) ([]SearchTracksAccessibleByUserRow, error)
@@ -229,6 +236,8 @@ type Querier interface {
 	UpdateShareToken(ctx context.Context, arg UpdateShareTokenParams) (ShareToken, error)
 	UpdateSharedProjectOrganization(ctx context.Context, arg UpdateSharedProjectOrganizationParams) (UserSharedProjectOrganization, error)
 	UpdateSharedTrackOrganization(ctx context.Context, arg UpdateSharedTrackOrganizationParams) (UserSharedTrackOrganization, error)
+	UpdateStemJobError(ctx context.Context, arg UpdateStemJobErrorParams) error
+	UpdateStemJobStatus(ctx context.Context, arg UpdateStemJobStatusParams) error
 	UpdateTrack(ctx context.Context, arg UpdateTrackParams) (Track, error)
 	UpdateTrackAnalysis(ctx context.Context, arg UpdateTrackAnalysisParams) error
 	UpdateTrackBPM(ctx context.Context, arg UpdateTrackBPMParams) error

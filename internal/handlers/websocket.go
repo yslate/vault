@@ -124,6 +124,17 @@ func (h *WSHub) NotifyTranscodingUpdate(userID int64, trackPublicID string, vers
 	})
 }
 
+func (h *WSHub) NotifyStemUpdate(userID int64, trackPublicID string, versionID int64, status string) {
+	h.SendToUser(userID, WSMessage{
+		Type: "stem_splitting_update",
+		Payload: map[string]interface{}{
+			"track_public_id": trackPublicID,
+			"version_id":      versionID,
+			"status":          status,
+		},
+	})
+}
+
 type WebSocketHandler struct {
 	hub *WSHub
 }

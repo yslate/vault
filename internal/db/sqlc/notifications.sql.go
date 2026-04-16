@@ -49,6 +49,21 @@ func (q *Queries) CreateListenEvent(ctx context.Context, arg CreateListenEventPa
 	return i, err
 }
 
+const deleteListenEvent = `-- name: DeleteListenEvent :exec
+DELETE FROM listen_events
+WHERE id = ? AND track_owner_id = ?
+`
+
+type DeleteListenEventParams struct {
+	ID           int64 `json:"id"`
+	TrackOwnerID int64 `json:"track_owner_id"`
+}
+
+func (q *Queries) DeleteListenEvent(ctx context.Context, arg DeleteListenEventParams) error {
+	_, err := q.db.ExecContext(ctx, deleteListenEvent, arg.ID, arg.TrackOwnerID)
+	return err
+}
+
 const getListenEvents = `-- name: GetListenEvents :many
 SELECT id, event_type, track_owner_id, track_id, track_title, played_by_user_id, played_by_username, played_at, read FROM listen_events
 WHERE track_owner_id = ?
@@ -89,6 +104,78 @@ func (q *Queries) GetListenEvents(ctx context.Context, trackOwnerID int64) ([]Li
 	return items, nil
 }
 
+const getProjectStreamStats = `-- name: GetProjectStreamStats :many
+SELECT
+    t.id,
+    t.public_id,
+    t.title,
+    COALESCE(SUM(CASE WHEN le.event_type = 'listen' THEN 1 ELSE 0 END), 0) as stream_count,
+    COALESCE(SUM(CASE WHEN le.event_type = 'download' THEN 1 ELSE 0 END), 0) as download_count
+FROM tracks t
+LEFT JOIN listen_events le ON le.track_id = t.id
+WHERE t.project_id = ?
+GROUP BY t.id, t.public_id, t.title
+HAVING stream_count > 0 OR download_count > 0
+ORDER BY stream_count DESC
+`
+
+type GetProjectStreamStatsRow struct {
+	ID            int64       `json:"id"`
+	PublicID      string      `json:"public_id"`
+	Title         string      `json:"title"`
+	StreamCount   interface{} `json:"stream_count"`
+	DownloadCount interface{} `json:"download_count"`
+}
+
+func (q *Queries) GetProjectStreamStats(ctx context.Context, projectID int64) ([]GetProjectStreamStatsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getProjectStreamStats, projectID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetProjectStreamStatsRow{}
+	for rows.Next() {
+		var i GetProjectStreamStatsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PublicID,
+			&i.Title,
+			&i.StreamCount,
+			&i.DownloadCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getTrackStats = `-- name: GetTrackStats :one
+SELECT
+    COALESCE(SUM(CASE WHEN event_type = 'listen' THEN 1 ELSE 0 END), 0) as stream_count,
+    COALESCE(SUM(CASE WHEN event_type = 'download' THEN 1 ELSE 0 END), 0) as download_count
+FROM listen_events
+WHERE track_id = ?
+`
+
+type GetTrackStatsRow struct {
+	StreamCount   interface{} `json:"stream_count"`
+	DownloadCount interface{} `json:"download_count"`
+}
+
+func (q *Queries) GetTrackStats(ctx context.Context, trackID sql.NullInt64) (GetTrackStatsRow, error) {
+	row := q.db.QueryRowContext(ctx, getTrackStats, trackID)
+	var i GetTrackStatsRow
+	err := row.Scan(&i.StreamCount, &i.DownloadCount)
+	return i, err
+}
+
 const getUnreadListenEventsCount = `-- name: GetUnreadListenEventsCount :one
 SELECT COUNT(*) FROM listen_events
 WHERE track_owner_id = ? AND read = 0
@@ -114,8 +201,7 @@ func (q *Queries) MarkAllListenEventsRead(ctx context.Context, trackOwnerID int6
 
 const recentListenEventExists = `-- name: RecentListenEventExists :one
 SELECT COUNT(*) FROM listen_events
-WHERE track_owner_id = ? AND track_id = ? AND event_type = 'listen'
-  AND played_at > datetime('now', '-30 minutes')
+WHERE track_owner_id = ? AND track_id = ? AND played_at > datetime('now', '-30 minutes')
 `
 
 type RecentListenEventExistsParams struct {
@@ -128,81 +214,4 @@ func (q *Queries) RecentListenEventExists(ctx context.Context, arg RecentListenE
 	var count int64
 	err := row.Scan(&count)
 	return count, err
-}
-
-const deleteListenEvent = `-- name: DeleteListenEvent :exec
-DELETE FROM listen_events
-WHERE id = ? AND track_owner_id = ?
-`
-
-type DeleteListenEventParams struct {
-	ID           int64 `json:"id"`
-	TrackOwnerID int64 `json:"track_owner_id"`
-}
-
-func (q *Queries) DeleteListenEvent(ctx context.Context, arg DeleteListenEventParams) error {
-	_, err := q.db.ExecContext(ctx, deleteListenEvent, arg.ID, arg.TrackOwnerID)
-	return err
-}
-
-const getTrackStats = `-- name: GetTrackStats :one
-SELECT
-  COALESCE(SUM(CASE WHEN event_type = 'listen' THEN 1 ELSE 0 END), 0) AS stream_count,
-  COALESCE(SUM(CASE WHEN event_type = 'download' THEN 1 ELSE 0 END), 0) AS download_count
-FROM listen_events
-WHERE track_id = ?
-`
-
-type GetTrackStatsRow struct {
-	StreamCount   int64 `json:"stream_count"`
-	DownloadCount int64 `json:"download_count"`
-}
-
-func (q *Queries) GetTrackStats(ctx context.Context, trackID int64) (GetTrackStatsRow, error) {
-	row := q.db.QueryRowContext(ctx, getTrackStats, trackID)
-	var r GetTrackStatsRow
-	err := row.Scan(&r.StreamCount, &r.DownloadCount)
-	return r, err
-}
-
-const getProjectStreamStats = `-- name: GetProjectStreamStats :many
-SELECT
-  t.id,
-  t.public_id,
-  t.title,
-  COALESCE(SUM(CASE WHEN le.event_type = 'listen' THEN 1 ELSE 0 END), 0) AS stream_count,
-  COALESCE(SUM(CASE WHEN le.event_type = 'download' THEN 1 ELSE 0 END), 0) AS download_count
-FROM tracks t
-LEFT JOIN listen_events le ON le.track_id = t.id
-WHERE t.project_id = ?
-GROUP BY t.id, t.public_id, t.title
-ORDER BY stream_count DESC
-`
-
-type GetProjectStreamStatsRow struct {
-	ID            int64  `json:"id"`
-	PublicID      string `json:"public_id"`
-	Title         string `json:"title"`
-	StreamCount   int64  `json:"stream_count"`
-	DownloadCount int64  `json:"download_count"`
-}
-
-func (q *Queries) GetProjectStreamStats(ctx context.Context, projectID int64) ([]GetProjectStreamStatsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getProjectStreamStats, projectID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []GetProjectStreamStatsRow{}
-	for rows.Next() {
-		var r GetProjectStreamStatsRow
-		if err := rows.Scan(&r.ID, &r.PublicID, &r.Title, &r.StreamCount, &r.DownloadCount); err != nil {
-			return nil, err
-		}
-		items = append(items, r)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	return items, rows.Err()
 }

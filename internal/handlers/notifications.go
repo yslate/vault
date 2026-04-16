@@ -42,7 +42,7 @@ func toListenEventResponse(e sqlc.ListenEvent) ListenEventResponse {
 		EventType:        e.EventType,
 		TrackTitle:       e.TrackTitle,
 		PlayedByUsername: e.PlayedByUsername,
-		Read:             e.Read,
+		Read:             e.Read != 0,
 	}
 	if e.TrackID.Valid {
 		resp.TrackID = &e.TrackID.Int64
@@ -50,8 +50,8 @@ func toListenEventResponse(e sqlc.ListenEvent) ListenEventResponse {
 	if e.PlayedByUserID.Valid {
 		resp.PlayedByUserID = &e.PlayedByUserID.Int64
 	}
-	if e.PlayedAt.Valid {
-		t := e.PlayedAt.Time.Format("2006-01-02T15:04:05Z07:00")
+	if !e.PlayedAt.IsZero() {
+		t := e.PlayedAt.Format("2006-01-02T15:04:05Z07:00")
 		resp.PlayedAt = &t
 	}
 	return resp
@@ -122,7 +122,7 @@ func (h *NotificationsHandler) GetTrackStreamStats(w http.ResponseWriter, r *htt
 		return apperr.NewForbidden("access denied")
 	}
 
-	stats, err := h.db.Queries.GetTrackStats(ctx, track.ID)
+	stats, err := h.db.Queries.GetTrackStats(ctx, sql.NullInt64{Int64: track.ID, Valid: true})
 	if err != nil {
 		return apperr.NewInternal("failed to get track stats", err)
 	}
@@ -162,8 +162,12 @@ func (h *NotificationsHandler) GetProjectStreamStats(w http.ResponseWriter, r *h
 
 	var totalStreams, totalDownloads int64
 	for _, r := range rows {
-		totalStreams += r.StreamCount
-		totalDownloads += r.DownloadCount
+		if v, ok := r.StreamCount.(int64); ok {
+			totalStreams += v
+		}
+		if v, ok := r.DownloadCount.(int64); ok {
+			totalDownloads += v
+		}
 	}
 
 	httputil.WriteJSON(w, http.StatusOK, map[string]interface{}{

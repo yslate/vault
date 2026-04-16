@@ -164,6 +164,31 @@ func (q *Queries) GetTrackFile(ctx context.Context, arg GetTrackFileParams) (Tra
 	return i, err
 }
 
+const getTrackFileByID = `-- name: GetTrackFileByID :one
+SELECT id, version_id, quality, file_path, file_size, format, bitrate, content_hash, transcoding_status, created_at, waveform, original_filename FROM track_files
+WHERE id = ?
+`
+
+func (q *Queries) GetTrackFileByID(ctx context.Context, id int64) (TrackFile, error) {
+	row := q.db.QueryRowContext(ctx, getTrackFileByID, id)
+	var i TrackFile
+	err := row.Scan(
+		&i.ID,
+		&i.VersionID,
+		&i.Quality,
+		&i.FilePath,
+		&i.FileSize,
+		&i.Format,
+		&i.Bitrate,
+		&i.ContentHash,
+		&i.TranscodingStatus,
+		&i.CreatedAt,
+		&i.Waveform,
+		&i.OriginalFilename,
+	)
+	return i, err
+}
+
 const listAllTrackFiles = `-- name: ListAllTrackFiles :many
 SELECT id, version_id, quality, file_path, file_size, format, bitrate, content_hash, transcoding_status, created_at, waveform, original_filename FROM track_files
 ORDER BY id ASC

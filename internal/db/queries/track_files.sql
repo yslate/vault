@@ -46,3 +46,7 @@ LIMIT 1;
 -- name: ListAllTrackFiles :many
 SELECT * FROM track_files
 ORDER BY id ASC;
+
+-- name: GetTrackFileByID :one
+SELECT * FROM track_files
+WHERE id = ?;

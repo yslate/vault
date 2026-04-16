@@ -66,6 +66,18 @@ type InviteToken struct {
 	ExpiresAt time.Time     `json:"expires_at"`
 }
 
+type ListenEvent struct {
+	ID               int64         `json:"id"`
+	EventType        string        `json:"event_type"`
+	TrackOwnerID     int64         `json:"track_owner_id"`
+	TrackID          sql.NullInt64 `json:"track_id"`
+	TrackTitle       string        `json:"track_title"`
+	PlayedByUserID   sql.NullInt64 `json:"played_by_user_id"`
+	PlayedByUsername string        `json:"played_by_username"`
+	PlayedAt         time.Time     `json:"played_at"`
+	Read             int64         `json:"read"`
+}
+
 type Note struct {
 	ID         int64         `json:"id"`
 	UserID     int64         `json:"user_id"`
@@ -179,6 +191,17 @@ type ShareToken struct {
 	UpdatedAt          sql.NullTime   `json:"updated_at"`
 }
 
+type StemJob struct {
+	ID            int64          `json:"id"`
+	VersionID     int64          `json:"version_id"`
+	UserID        int64          `json:"user_id"`
+	TrackPublicID string         `json:"track_public_id"`
+	Status        string         `json:"status"`
+	ErrorMessage  sql.NullString `json:"error_message"`
+	CreatedAt     sql.NullTime   `json:"created_at"`
+	UpdatedAt     sql.NullTime   `json:"updated_at"`
+}
+
 type Track struct {
 	ID                      int64          `json:"id"`
 	UserID                  int64          `json:"user_id"`
@@ -250,8 +273,8 @@ type UserPreference struct {
 	DiscColors          sql.NullString `json:"disc_colors"`
 	ColorSpread         sql.NullInt64  `json:"color_spread"`
 	GradientSpread      sql.NullInt64  `json:"gradient_spread"`
-	TrackInsertPosition string         `json:"track_insert_position"`
 	ColorShiftRotation  sql.NullInt64  `json:"color_shift_rotation"`
+	TrackInsertPosition string         `json:"track_insert_position"`
 }
 
 type UserProjectShare struct {
@@ -294,18 +317,6 @@ type UserTrackShare struct {
 	CanDownload bool         `json:"can_download"`
 	CreatedAt   sql.NullTime `json:"created_at"`
 	UpdatedAt   sql.NullTime `json:"updated_at"`
-}
-
-type ListenEvent struct {
-	ID               int64         `json:"id"`
-	EventType        string        `json:"event_type"`
-	TrackOwnerID     int64         `json:"track_owner_id"`
-	TrackID          sql.NullInt64 `json:"track_id"`
-	TrackTitle       string        `json:"track_title"`
-	PlayedByUserID   sql.NullInt64 `json:"played_by_user_id"`
-	PlayedByUsername string        `json:"played_by_username"`
-	PlayedAt         sql.NullTime  `json:"played_at"`
-	Read             bool          `json:"read"`
 }
 
 type WebsocketSession struct {

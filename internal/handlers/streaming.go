@@ -115,12 +115,12 @@ func (h *StreamingHandler) recordListenEvent(ctx context.Context, track sqlc.Tra
 	}
 
 	event, err := h.db.Queries.CreateListenEvent(ctx, sqlc.CreateListenEventParams{
-		EventType:        "listen",
 		TrackOwnerID:     track.UserID,
 		TrackID:          sql.NullInt64{Int64: track.ID, Valid: true},
 		TrackTitle:       track.Title,
 		PlayedByUserID:   sql.NullInt64{Int64: playedByUserID, Valid: true},
 		PlayedByUsername: player.Username,
+		EventType:        "listen",
 	})
 	if err != nil {
 		log.Printf("[StreamingHandler] Failed to create listen event: %v", err)

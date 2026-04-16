@@ -27,7 +27,7 @@ func (q *Queries) CreateUserPreferences(ctx context.Context, arg CreateUserPrefe
 }
 
 const getUserPreferences = `-- name: GetUserPreferences :one
-SELECT user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, track_insert_position, color_shift_rotation FROM user_preferences
+SELECT user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, color_shift_rotation, track_insert_position FROM user_preferences
 WHERE user_id = ?
 `
 
@@ -42,8 +42,8 @@ func (q *Queries) GetUserPreferences(ctx context.Context, userID int64) (UserPre
 		&i.DiscColors,
 		&i.ColorSpread,
 		&i.GradientSpread,
-		&i.TrackInsertPosition,
 		&i.ColorShiftRotation,
+		&i.TrackInsertPosition,
 	)
 	return i, err
 }
@@ -58,7 +58,7 @@ SET default_quality = COALESCE(?1, default_quality),
     color_shift_rotation = COALESCE(?6, color_shift_rotation),
     updated_at = CURRENT_TIMESTAMP
 WHERE user_id = ?7
-RETURNING user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, track_insert_position, color_shift_rotation
+RETURNING user_id, default_quality, created_at, updated_at, disc_colors, color_spread, gradient_spread, color_shift_rotation, track_insert_position
 `
 
 type UpdateUserPreferencesParams struct {
@@ -90,8 +90,8 @@ func (q *Queries) UpdateUserPreferences(ctx context.Context, arg UpdateUserPrefe
 		&i.DiscColors,
 		&i.ColorSpread,
 		&i.GradientSpread,
-		&i.TrackInsertPosition,
 		&i.ColorShiftRotation,
+		&i.TrackInsertPosition,
 	)
 	return i, err
 }

@@ -21,6 +21,7 @@ import (
 	"bungleware/vault/internal/middleware"
 	"bungleware/vault/internal/service"
 	"bungleware/vault/internal/storage"
+	"bungleware/vault/internal/stemming"
 	"bungleware/vault/internal/transcoding"
 
 	"github.com/joho/godotenv"
@@ -234,6 +235,17 @@ func main() {
 	defer transcoder.Stop()
 	slog.Info("Transcoding system initialized", "workers", 2)
 
+	var stemSplitter *stemming.StemSplitter
+	if stemming.IsAvailable() {
+		stemSplitter = stemming.NewStemSplitter(database, 1)
+		stemSplitter.SetNotifier(wsHub)
+		stemSplitter.Start()
+		defer stemSplitter.Stop()
+		slog.Info("Stem splitting system initialized", "workers", 1)
+	} else {
+		slog.Warn("Stem splitting not available (demucs not found in PATH)")
+	}
+
 	storageAdapter := storage.NewFilesystemStorage(config.DataDir)
 	svc := service.NewService(database, storageAdapter)
 
@@ -267,6 +279,11 @@ func main() {
 	streamingHandler := handlers.NewStreamingHandler(database, wsHub)
 	notificationsHandler := handlers.NewNotificationsHandler(database)
 	sharingHandler := sharing.NewSharingHandler(database, storageAdapter, wsHub)
+	var stemSplitterInterface handlers.StemSplitter
+	if stemSplitter != nil {
+		stemSplitterInterface = stemSplitter
+	}
+	stemsHandler := handlers.NewStemsHandler(database, stemSplitterInterface)
 	collaborationHub := handlers.NewCollaborationHub()
 	collaborationHandler := handlers.NewCollaborationWebSocketHandler(collaborationHub)
 	notesHandler := handlers.NewNotesHandler(database)
@@ -385,6 +402,11 @@ func main() {
 	mux.Handle("PUT /api/tracks/{id}", authMW(httputil.Wrap(tracksHandler.UpdateTrack)))
 	mux.Handle("DELETE /api/tracks/{id}", authMW(httputil.Wrap(tracksHandler.DeleteTrack)))
 	mux.Handle("POST /api/tracks/{id}/duplicate", authMW(httputil.Wrap(tracksHandler.DuplicateTrack)))
+
+	mux.Handle("POST /api/tracks/{id}/split-stems", authMW(httputil.Wrap(stemsHandler.SplitStems)))
+	mux.Handle("GET /api/tracks/{id}/stems", authMW(httputil.Wrap(stemsHandler.GetStems)))
+	mux.Handle("GET /api/stems/{stemFileId}/stream", authMW(httputil.Wrap(stemsHandler.StreamStem)))
+	mux.Handle("GET /api/stems/{stemFileId}/download", authMW(httputil.Wrap(stemsHandler.DownloadStem)))
 
 	mux.Handle("GET /api/tracks/{track_id}/versions", authMW(httputil.Wrap(versionsHandler.ListVersions)))
 	mux.Handle("POST /api/tracks/{track_id}/versions/upload", authMW(httputil.Wrap(versionsHandler.UploadVersion)))
